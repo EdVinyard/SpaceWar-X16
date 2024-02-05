@@ -1,1 +1,91 @@
-INIT:    SCREEN $80    RECT 0,0, 319,239, 0    PRINT "HELLO, SPACEWAR!"    REM SHIP VERTICES    DATA 7, -3,3, -1,-4, 0,-4, 3,3, 0,2, -1,2, -3,3    T0 = -2 * 3.14159 / 16: REM ROTATION INCREMENT IN RADIANS    FOR I = 0 TO 15        REM PRINT I,I*T0        READ N, X1,Y1, X2,Y2        X=X1: Y=Y1: T=I*T0: GOSUB ROTATE        X1=X: Y1=Y        X=X2: Y=Y2: T=I*T0: GOSUB ROTATE        X2=X: Y2=Y        REM PRINT X1,Y1,X2,Y2        LINE 310+X1,8*I+Y1+4, 310+X2,8*I+Y2+4, 1        FOR J = 3 TO N            X1=X2: Y1=Y2            READ X2,Y2            X=X2: Y=Y2: T=I*T0: GOSUB ROTATE            X2=X: Y2=Y                    REM PRINT X1,Y1,X2,Y2            LINE 310+X1,8*I+Y1+4, 310+X2,8*I+Y2+4, 1            NEXT J        RESTORE        NEXT I    REM COPY 1ST SHIP IMAGE TO SPRITE MEMORY    SP = $0     : REM SOURCE POINTER (BANK 0)    TP = $3000  : REM TARGET POINTER (BANK 1)    REM    IDX BNK ADR DEPTH (8-BIT)    SPRMEM 1,  1,  TP, 1    REM    IDX PRI PAL FLP XSZ YSZ DEPTH (8-BIT)    SPRITE 1,  3,  0,  0,  0,  0,  1    REM    IDX X   Y    MOVSPR 1,  290,0    FOR R = 0 TO 7     : REM ROWS        FOR C = 0 TO 7 : REM COLUMNS            P = VPEEK(0, SP + (320*R) + (C+306))            PRINT P;            VPOKE 1, TP + (8*R) + C, P            NEXT        PRINT        NEXT        ENDROTATE:    REM ROTATE AN X,Y COORDINATE AROUND THE ORIGIN (0,0)    REM INOUT X X-COORDINATE    REM INOUT Y Y-COORDINATE     REM INPUT T COUNTERCLOCKWISE ROTATION IN RADIANS    X0 = X    Y0 = Y    X = X0 * COS(T) - Y0 * SIN(T)    Y = X0 * SIN(T) + Y0 * COS(T)    RETURN
+INIT:
+    SCREEN $80
+    CLS
+    RECT 0,0, 319,239, 0
+    PRINT "HELLO, SPACEWAR!"
+
+    REM SHIP VERTICES
+    DATA 7, -3,3, -1,-4, 0,-4, 3,3, 0,2, -1,2, -3,3
+
+    T0 = -2 * 3.14159 / 16  : REM ROTATION INCREMENT IN RADIANS
+    YG = 10                 : REM Y-GAP BETWEEN DRAWINGS
+    FOR I = 0 TO 15
+        REM PRINT I,I*T0
+        READ N, X1,Y1, X2,Y2
+        X=X1: Y=Y1: T=I*T0: GOSUB ROTATE: X1=X: Y1=Y
+
+        X=X2: Y=Y2: T=I*T0: GOSUB ROTATE: X2=X: Y2=Y
+
+        REM PRINT X1,Y1,X2,Y2
+        LINE 310+X1,YG*I+Y1+4, 310+X2,YG*I+Y2+4, 1
+
+        FOR J = 3 TO N
+            X1=X2: Y1=Y2
+            READ X2,Y2
+
+            X=X2: Y=Y2: T=I*T0: GOSUB ROTATE: X2=X: Y2=Y
+        
+            REM PRINT X1,Y1,X2,Y2
+            LINE 310+X1,YG*I+Y1+4, 310+X2,YG*I+Y2+4, 1
+            NEXT J
+
+        RESTORE
+        NEXT I
+
+    REM    IDX BNK ADR    DEPTH (8-BIT)
+    SPRMEM 1,  1,  $3000, 1
+    REM    IDX PRI PAL FLP XSZ YSZ DEPTH (8-BIT)
+    SPRITE 1,  3,  0,  0,  0,  0,  1
+    REM    IDX X   Y
+    MOVSPR 1,  290,0
+
+    FOR I = 0 TO 15
+        SA = $3000 + (256*I): REM SPRITE ADDRESS
+        REM PRINT I, SA
+        SPRMEM 1,  1,  SA, 1
+        SX=306: SY=YG*I: SC=8: SR=8: DA=SA: GOSUB SPRITECOPY
+        NEXT I
+
+    PRINT "PRESS ANY KEY TO QUIT"
+    I = 0
+    ANYKEYTOQUIT:
+        SPRMEM 1,  1,  $100 * I + $3000, 1
+        SLEEP 3
+        I = I + 1: IF I > 15 THEN I = 0
+        GET K$: IF K$="" THEN ANYKEYTOQUIT
+    
+    END
+
+ROTATE:
+    REM ROTATE AN X,Y COORDINATE AROUND THE ORIGIN (0,0)
+    REM INOUT X X-COORDINATE
+    REM INOUT Y Y-COORDINATE 
+    REM INPUT T COUNTERCLOCKWISE ROTATION IN RADIANS
+
+    ZX = X
+    ZY = Y
+    X = ZX * COS(T) - ZY * SIN(T)
+    Y = ZX * SIN(T) + ZY * COS(T)
+    RETURN
+
+SPRITECOPY:
+    REM COPY 8-BIT VALUES FROM VRAM INTO SPRITE VRAM
+    REM WARNING: ONLY WORKS UP TO $FFFF!
+    REM INPUT SX START X-COORDINATE (0-319)
+    REM INPUT SY START Y-COORDINATE (0-239)
+    REM INPUT SR SOURCE ROWS (8,16,32,64)
+    REM INPUT SC SOURCE COLUMNS (8,16,32,64)
+    REM INPUT DA DESTINATION ADDRESS (>=$3000)
+
+    ZI = 0
+    FOR ZY = SY TO SY+SR-1     : REM ROWS
+        FOR ZX = SX TO SX+SC-1 : REM COLUMNS
+            P = VPEEK(0, 320*ZY + ZX)
+            REM PRINT P;
+            VPOKE 1, DA + ZI, P
+            ZI = ZI + 1
+            NEXT
+        REM PRINT
+        NEXT
+
+    RETURN    
