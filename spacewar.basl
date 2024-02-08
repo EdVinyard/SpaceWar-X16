@@ -12,17 +12,15 @@ INIT:
     Y0 = 120
     FOR I = 0 TO 15
         REM RENDER THE FIRST EDGE
-        READ N, X1,Y1, X2,Y2
+        READ N, X1,Y1
         X=X1: Y=Y1: T=I*T0: GOSUB ROTATE: X1=X: Y1=Y
-        X=X2: Y=Y2: T=I*T0: GOSUB ROTATE: X2=X: Y2=Y
-        LINE X0+X1,Y0+Y1, X0+X2,Y0+Y2, 1
 
         REM RENDER THE REST OF THE EDGES
-        FOR J = 3 TO N
-            X1=X2: Y1=Y2
+        FOR J = 2 TO N
             READ X2,Y2
             X=X2: Y=Y2: T=I*T0: GOSUB ROTATE: X2=X: Y2=Y
             LINE X0+X1,Y0+Y1, X0+X2,Y0+Y2, 1
+            X1=X2: Y1=Y2
             NEXT J
 
         REM COPY DRAWING INTO SPRITE VRAM
