@@ -1,33 +1,34 @@
 INIT:
     SCREEN $80
     CLS
-    RECT 0,0, 319,239, 0
     PRINT "HELLO, SPACEWAR!"
+    RECT 0,0, 319,239, 0
 
     REM SHIP VERTICES
     DATA 7, -3,3, -1,-4, 0,-4, 3,3, 0,2, -1,2, -3,3
 
     T0 = -2 * 3.14159 / 16  : REM ROTATION INCREMENT IN RADIANS
-    YG = 10                 : REM Y-GAP BETWEEN DRAWINGS
+    X0 = 100
+    Y0 = 120
     FOR I = 0 TO 15
-        REM PRINT I,I*T0
+        REM RENDER THE FIRST EDGE
         READ N, X1,Y1, X2,Y2
         X=X1: Y=Y1: T=I*T0: GOSUB ROTATE: X1=X: Y1=Y
-
         X=X2: Y=Y2: T=I*T0: GOSUB ROTATE: X2=X: Y2=Y
+        LINE X0+X1,Y0+Y1, X0+X2,Y0+Y2, 1
 
-        REM PRINT X1,Y1,X2,Y2
-        LINE 310+X1,YG*I+Y1+4, 310+X2,YG*I+Y2+4, 1
-
+        REM RENDER THE REST OF THE EDGES
         FOR J = 3 TO N
             X1=X2: Y1=Y2
             READ X2,Y2
-
             X=X2: Y=Y2: T=I*T0: GOSUB ROTATE: X2=X: Y2=Y
-        
-            REM PRINT X1,Y1,X2,Y2
-            LINE 310+X1,YG*I+Y1+4, 310+X2,YG*I+Y2+4, 1
+            LINE X0+X1,Y0+Y1, X0+X2,Y0+Y2, 1
             NEXT J
+
+        REM COPY DRAWING INTO SPRITE VRAM
+        SA = $3000 + (256*I): REM SPRITE ADDRESS
+        SX=X0-4: SY=Y0-4: SC=8: SR=8: DA=SA: GOSUB SPRITECOPY
+        RECT X0-5,Y0-5, X0+4,Y0+4, 0
 
         RESTORE
         NEXT I
@@ -36,15 +37,8 @@ INIT:
     SPRMEM 1,  1,  $3000, 1
     REM    IDX PRI PAL FLP XSZ YSZ DEPTH (8-BIT)
     SPRITE 1,  3,  0,  0,  0,  0,  1
-    REM    IDX X   Y
-    MOVSPR 1,  290,0
-
-    FOR I = 0 TO 15
-        SA = $3000 + (256*I): REM SPRITE ADDRESS
-        REM PRINT I, SA
-        SPRMEM 1,  1,  SA, 1
-        SX=306: SY=YG*I: SC=8: SR=8: DA=SA: GOSUB SPRITECOPY
-        NEXT I
+    REM    IDX X     Y
+    MOVSPR 1,  X0-4, Y0-4
 
     PRINT "PRESS ANY KEY TO QUIT"
     I = 0
