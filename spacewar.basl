@@ -36,7 +36,7 @@ INIT:
     REM    IDX BNK ADR    DEPTH (8-BIT)
     SPRMEM 1,  1,  $3000, 1
     REM    IDX PRI PAL FLP XSZ YSZ DEPTH (8-BIT)
-    SPRITE 1,  3,  0,  0,  0,  0,  1
+    SPRITE 1,  3,  8    ,  0,  0,  0,  1
     REM    IDX X     Y
     MOVSPR 1,  X0-4, Y0-4
 
@@ -70,7 +70,7 @@ MAINLOOP:
     IF Y < 0 THEN Y = 235
     MOVSPR 1, X, Y
 
-    SLEEP 1
+    SLEEP 2
     GOTO MAINLOOP
 
 QUIT:
