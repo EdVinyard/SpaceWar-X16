@@ -6,7 +6,69 @@ INIT:
 
     REM SHIP VERTICES
     DATA 7, -3,3, -1,-4, 0,-4, 3,3, 0,2, -1,2, -3,3
+    GOSUB MAKESPRITES
 
+    E  = 0: REM ENTITY INDEX
+    EC = 2: REM TOTAL ENTITY COUNT
+
+    REM ENTITY PROPERTIES
+    DIM S(EC): REM SPRITE INDEX
+    DIM R(EC): REM ROTATION COUNTERCLOCKWISE / (PI/16)
+    DIM X(EC): REM X-POSITION
+    DIM Y(EC): REM Y-POSITION
+    DIM J(EC): REM JOYSTICK STATE
+
+    REM    IDX PRI PAL FLP XSZ YSZ DEPTH (8-BIT)
+    SPRITE 1,  3,  2,  0,  0,  0,  1
+    SPRITE 2,  3,  3,  0,  0,  0,  1
+
+    R(1)=0: X(1)=X0-4:   Y(1)=Y0: S(1)=1
+    R(2)=0: X(2)=X0+100: Y(2)=Y0: S(2)=2
+
+    PRINT "PRESS START/ENTER TO QUIT ASDF"
+MAINLOOP:
+    J(1) = JOY(1)
+    IF J(1) = -1 THEN J(1) = JOY(0)
+    IF J(E) AND $010 THEN QUIT
+    E=1: GOSUB UPDATEPOSN
+
+    J(2) = JOY(2)
+    IF J(2) = -1 THEN J(2) = JOY(0)
+    E=2: GOSUB UPDATEPOSN
+
+    SLEEP 0
+    GOTO MAINLOOP
+
+QUIT:
+    END
+
+UPDATEPOSN:
+    REM ROTATION
+    IF J(E) AND $200 THEN R(E) = R(E) + 1 : REM L-BUTTON
+    IF J(E) AND $100 THEN R(E) = R(E) - 1 : REM R-BUTTON
+    IF R(E) > 15 THEN R(E) = 0
+    IF R(E) < 0 THEN R(E) = 15
+
+    REM    IDX    BNK ADR                  DEPTH (8-BIT)
+    SPRMEM S(E),  1,  $100 * R(E) + $3000, 1
+
+    REM HORIZONTAL MOVEMENT
+    IF J(E) AND $002 THEN X(E) = X(E) - 1 : REM D-PAD LEFT 
+    IF J(E) AND $001 THEN X(E) = X(E) + 1 : REM D-PAD RIGHT
+    IF X(E) > 315 THEN X(E) = 0
+    IF X(E) < 0 THEN X(E) = 315
+
+    REM VERTICAL MOVEMENT
+    IF J(E) AND $004 THEN Y(E) = Y(E) + 1 : REM D-PAD DOWN
+    IF J(E) AND $008 THEN Y(E) = Y(E) - 1 : REM D-PAD UP
+    IF Y(E) > 235 THEN Y(E) = 0
+    IF Y(E) < 0 THEN Y(E) = 235
+
+    REM    IDX   X     Y
+    MOVSPR S(E), X(E), Y(E)
+    RETURN
+
+MAKESPRITES:
     T0 = -2 * 3.14159 / 16  : REM ROTATION INCREMENT IN RADIANS
     X0 = 100
     Y0 = 120
@@ -32,49 +94,6 @@ INIT:
 
         RESTORE
         NEXT I
-
-    REM    IDX BNK ADR    DEPTH (8-BIT)
-    SPRMEM 1,  1,  $3000, 1
-    REM    IDX PRI PAL FLP XSZ YSZ DEPTH (8-BIT)
-    SPRITE 1,  3,  8    ,  0,  0,  0,  1
-    REM    IDX X     Y
-    MOVSPR 1,  X0-4, Y0-4
-
-    PRINT "PRESS START/ENTER TO QUIT"
-    R = 0
-    X = X0 - 4
-    Y = Y0 - 4
-MAINLOOP:
-    J = JOY(0)
-    J1 = JOY(1)
-    IF J1 <> -1 THEN J = J OR J1
-    IF J AND $010 THEN QUIT      : REM START/ENTER
-
-    REM ROTATION
-    IF J AND $200 THEN R = R + 1 : REM L-BUTTON
-    IF J AND $100 THEN R = R - 1 : REM R-BUTTON
-    IF R > 15 THEN R = 0
-    IF R < 0 THEN R = 15
-    SPRMEM 1,  1,  $100 * R + $3000, 1
-
-    REM HORIZONTAL MOVEMENT
-    IF J AND $002 THEN X = X - 1 : REM LEFT
-    IF J AND $001 THEN X = X + 1 : REM RIGHT
-    IF X > 315 THEN X = 0
-    IF X < 0 THEN X = 315
-
-    REM VERTICAL MOVEMENT
-    IF J AND $004 THEN Y = Y + 1 : REM DOWN
-    IF J AND $008 THEN Y = Y - 1 : REM UP
-    IF Y > 235 THEN Y = 0
-    IF Y < 0 THEN Y = 235
-    MOVSPR 1, X, Y
-
-    SLEEP 2
-    GOTO MAINLOOP
-
-QUIT:
-    END
 
 ROTATE:
     REM ROTATE AN X,Y COORDINATE AROUND THE ORIGIN (0,0)
@@ -108,4 +127,4 @@ SPRITECOPY:
         REM PRINT
         NEXT
 
-    RETURN    
+    RETURN
