@@ -18,14 +18,14 @@ INIT:
     DIM Y(EC): REM Y-POSITION
     DIM J(EC): REM JOYSTICK STATE
 
+    R(1)=0: X(1)=X0-4:   Y(1)=Y0: S(1)=1
+    R(2)=0: X(2)=X0+100: Y(2)=Y0: S(2)=2
+
     REM    IDX PRI PAL FLP XSZ YSZ DEPTH (8-BIT)
     SPRITE 1,  3,  2,  0,  0,  0,  1
     SPRITE 2,  3,  3,  0,  0,  0,  1
 
-    R(1)=0: X(1)=X0-4:   Y(1)=Y0: S(1)=1
-    R(2)=0: X(2)=X0+100: Y(2)=Y0: S(2)=2
-
-    PRINT "PRESS START/ENTER TO QUIT ASDF"
+    PRINT "PRESS START/ENTER TO QUIT"
 MAINLOOP:
     J(1) = JOY(1)
     IF J(1) = -1 THEN J(1) = JOY(0)
