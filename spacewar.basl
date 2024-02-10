@@ -40,8 +40,6 @@ MAINLOOP:
     IF J(1) = -1 THEN J(1) = KB
     IF J(2) = -1 THEN J(2) = KB
 
-    IF J(E) AND $010 THEN QUIT
-
     E=1: GOSUB UPDATEPOSN
     E=2: GOSUB UPDATEPOSN
 
@@ -52,6 +50,8 @@ QUIT:
     END
 
 UPDATEPOSN:
+    IF J(E) AND $010 THEN QUIT
+
     REM ROTATION
     IF J(E) AND $002 THEN R(E) = R(E) + 1       : REM D-PAD LEFT
     IF J(E) AND $001 THEN R(E) = R(E) - 1       : REM D-PAD RIGHT
@@ -81,7 +81,7 @@ UPDATEPOSN:
     Y(E) = Y(E) + VY(E)
     IF Y(E) > 235 THEN Y(E) = 0
     IF Y(E) < 0 THEN Y(E) = 235
-    
+
     REM    IDX   X     Y
     MOVSPR S(E), X(E), Y(E)
     RETURN
