@@ -164,6 +164,7 @@ FIRE:
     Y(M)  = 5 * Y + Y(E)
     T(M)  = 2
     S(M)  = M
+    R(M)  = 1
     C(M)  = 120: REM FIZZLE OUT AFTER THIS TIME
 
     REM    IDX PRI PAL FLP XSZ YSZ DEPTH (8-BIT)
@@ -208,7 +209,11 @@ MAKESPRITES:
     FOR I = 0 TO 255
         VPOKE 1, $4000+I, 0
         NEXT I
-    VPOKE 1, $4000, 1
+    VPOKE 1, $4001, 12
+    VPOKE 1, $4008, 12
+    VPOKE 1, $4009, 1
+    VPOKE 1, $400A, 12
+    VPOKE 1, $4011, 12
 
     RETURN
 
