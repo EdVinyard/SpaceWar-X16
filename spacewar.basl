@@ -3,7 +3,7 @@ INIT:
     CLS
     RECT 0,0, 319,239, 0: REM CLEAR SCREEN WITH BLACK
 
-    T0 = -2 * 3.14159 / 16 : REM ROTATION INCREMENT IN RADIANS
+    A0 = -2 * 3.14159 / 16 : REM SMALLEST ANGLE INCREMENT IN RADIANS
 
     REM SHIP VERTICES
     DATA 7, -3,3, -1,-4, 0,-4, 3,3, 0,2, -1,2, -3,3
@@ -28,7 +28,7 @@ INIT:
                 REM MISSILE 0 FIZZLE OUT     >0 FLYING
 
     REM SHIP-ONLY PROPERTIES
-    DIM  A( 2): REM ANGLE COUNTERCLOCKWISE (RADIANS = A*T0)
+    DIM  A( 2): REM ANGLE COUNTERCLOCKWISE (RADIANS = A*A0)
     DIM  J( 2): REM JOYSTICK STATE
 
     T(1)=1: A(1)=0: X(1)=X0-4:   Y(1)=Y0: VX(1)=0: VY(1)=0: S(1)=1: D(1)=4: C(1)=0
@@ -83,7 +83,7 @@ SHIP:
     IF NOT J(E) AND $008 THEN NOTHRUST          : REM D-PAD UP
         RT = A(E) + 8: REM ROTATION OF THRUST; OPPOSITE SHIP HEADING
         REM IF RT > 15 THEN RT = RT - 16: REM NORMALIZE THRUST ROTATION
-        X=0: Y=-0.5: T=A(E)*T0: GOSUB ROTATE
+        X=0: Y=-0.5: T=A(E)*A0: GOSUB ROTATE
         VX(E) = VX(E) + X
         VY(E) = VY(E) + Y
         REM LOCATE 1+E*2,1
@@ -157,7 +157,7 @@ FIRE:
         NEXT M
 
     LAUNCH:
-    X=0: Y=-1: T=A(E)*T0: GOSUB ROTATE
+    X=0: Y=-1: T=A(E)*A0: GOSUB ROTATE
     VX(M) = 2 * X + VX(E)
     VY(M) = 2 * Y + VY(E)
     X(M)  = 5 * X + X(E)
@@ -184,12 +184,12 @@ MAKESPRITES:
     FOR I = 0 TO 15
         REM RENDER THE FIRST EDGE
         READ N, X1,Y1
-        X=X1: Y=Y1: T=I*T0: GOSUB ROTATE: X1=X: Y1=Y
+        X=X1: Y=Y1: T=I*A0: GOSUB ROTATE: X1=X: Y1=Y
 
         REM RENDER THE REST OF THE EDGES
         FOR J = 2 TO N
             READ X2,Y2
-            X=X2: Y=Y2: T=I*T0: GOSUB ROTATE: X2=X: Y2=Y
+            X=X2: Y=Y2: T=I*A0: GOSUB ROTATE: X2=X: Y2=Y
             LINE X0+X1,Y0+Y1, X0+X2,Y0+Y2, 1
             X1=X2: Y1=Y2
             NEXT J
