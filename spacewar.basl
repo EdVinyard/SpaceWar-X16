@@ -28,11 +28,11 @@ INIT:
                 REM MISSILE 0 FIZZLE OUT     >0 FLYING
 
     REM SHIP-ONLY PROPERTIES
-    DIM  R( 2): REM ROTATION COUNTERCLOCKWISE / (PI/16)
+    DIM  A( 2): REM ANGLE COUNTERCLOCKWISE (RADIANS = A*T0)
     DIM  J( 2): REM JOYSTICK STATE
 
-    T(1)=1: R(1)=0: X(1)=X0-4:   Y(1)=Y0: VX(1)=0: VY(1)=0: S(1)=1: D(1)=4: C(1)=0
-    T(2)=1: R(2)=0: X(2)=X0+100: Y(2)=Y0: VX(2)=0: VY(2)=0: S(2)=2: D(2)=4: C(2)=0
+    T(1)=1: A(1)=0: X(1)=X0-4:   Y(1)=Y0: VX(1)=0: VY(1)=0: S(1)=1: D(1)=4: C(1)=0
+    T(2)=1: A(2)=0: X(2)=X0+100: Y(2)=Y0: VX(2)=0: VY(2)=0: S(2)=2: D(2)=4: C(2)=0
 
     REM    IDX PRI PAL FLP XSZ YSZ DEPTH (8-BIT)
     SPRITE 1,  3,  8,  0,  0,  0,  1
@@ -71,19 +71,19 @@ SHIP:
     IF J(E) AND $010 THEN QUIT
 
     REM ROTATION
-    IF J(E) AND $002 THEN R(E) = R(E) + 1       : REM D-PAD LEFT
-    IF J(E) AND $001 THEN R(E) = R(E) - 1       : REM D-PAD RIGHT
-    IF R(E) > 15 THEN R(E) = 0
-    IF R(E) < 0 THEN R(E) = 15
+    IF J(E) AND $002 THEN A(E) = A(E) + 1       : REM D-PAD LEFT
+    IF J(E) AND $001 THEN A(E) = A(E) - 1       : REM D-PAD RIGHT
+    IF A(E) > 15 THEN A(E) = 0
+    IF A(E) < 0 THEN A(E) = 15
 
     REM    IDX    BNK ADR                  DEPTH (8-BIT)
-    SPRMEM S(E),  1,  $100 * R(E) + $3000, 1
+    SPRMEM S(E),  1,  $100 * A(E) + $3000, 1
 
     REM THRUST
     IF NOT J(E) AND $008 THEN NOTHRUST          : REM D-PAD UP
-        RT = R(E) + 8: REM ROTATION OF THRUST; OPPOSITE SHIP HEADING
-        IF RT > 15 THEN RT = RT - 16: REM NORMALIZE THRUST ROTATION
-        X=0: Y=-0.5: T=R(E)*T0: GOSUB ROTATE
+        RT = A(E) + 8: REM ROTATION OF THRUST; OPPOSITE SHIP HEADING
+        REM IF RT > 15 THEN RT = RT - 16: REM NORMALIZE THRUST ROTATION
+        X=0: Y=-0.5: T=A(E)*T0: GOSUB ROTATE
         VX(E) = VX(E) + X
         VY(E) = VY(E) + Y
         REM LOCATE 1+E*2,1
@@ -157,7 +157,7 @@ FIRE:
         NEXT M
 
     LAUNCH:
-    X=0: Y=-1: T=R(E)*T0: GOSUB ROTATE
+    X=0: Y=-1: T=A(E)*T0: GOSUB ROTATE
     VX(M) = 2 * X + VX(E)
     VY(M) = 2 * Y + VY(E)
     X(M)  = 5 * X + X(E)
