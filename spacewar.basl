@@ -18,7 +18,7 @@ INIT:
     REM ENTITY PROPERTIES
     DIM  T(EC): REM TYPE EMPTY=0 SHIP=1 MISSILE=2
     DIM  S(EC): REM SPRITE INDEX
-    DIM  D(EC): REM RADIUS OF ENTITY IN PIXELS
+    DIM  R(EC): REM RADIUS OF ENTITY IN PIXELS
     DIM  X(EC): REM X-POSITION, CENTER OF ENTITY
     DIM  Y(EC): REM Y-POSITION, CENTER OF ENTITY
     DIM VX(EC): REM X-VELOCITY
@@ -31,8 +31,8 @@ INIT:
     DIM  A( 2): REM ANGLE COUNTERCLOCKWISE (RADIANS = A*A0)
     DIM  J( 2): REM JOYSTICK STATE
 
-    T(1)=1: A(1)=0: X(1)=X0-4:   Y(1)=Y0: VX(1)=0: VY(1)=0: S(1)=1: D(1)=4: C(1)=0
-    T(2)=1: A(2)=0: X(2)=X0+100: Y(2)=Y0: VX(2)=0: VY(2)=0: S(2)=2: D(2)=4: C(2)=0
+    T(1)=1: A(1)=0: X(1)=X0-4:   Y(1)=Y0: VX(1)=0: VY(1)=0: S(1)=1: R(1)=4: C(1)=0
+    T(2)=1: A(2)=0: X(2)=X0+100: Y(2)=Y0: VX(2)=0: VY(2)=0: S(2)=2: R(2)=4: C(2)=0
 
     REM    IDX PRI PAL FLP XSZ YSZ DEPTH (8-BIT)
     SPRITE 1,  3,  8,  0,  0,  0,  1
@@ -127,14 +127,14 @@ MOVE:
     IF Y(E) < 0 THEN Y(E) = 235
 
     REM    IDX   X          Y
-    MOVSPR S(E), X(E)-D(E), Y(E)-D(E)
+    MOVSPR S(E), X(E)-R(E), Y(E)-R(E)
 
     RETURN
 
 SHIPCRASH:
     ZX = X(1) - X(2)
     ZY = Y(1) - Y(2)
-    ZD = D(1) * D(1)
+    ZD = R(1) * R(1)
     IF ZX*ZX + ZY*ZY > ZD THEN RETURN
     E=1: GOSUB EXPLODE
     E=2: GOSUB EXPLODE
