@@ -17,7 +17,6 @@ INIT:
 
     REM ENTITY PROPERTIES
     DIM  T(EC): REM TYPE EMPTY=0 SHIP=1 MISSILE=2
-    DIM  S(EC): REM SPRITE INDEX
     DIM  R(EC): REM RADIUS OF ENTITY IN PIXELS
     DIM  X(EC): REM X-POSITION, CENTER OF ENTITY
     DIM  Y(EC): REM Y-POSITION, CENTER OF ENTITY
@@ -31,8 +30,9 @@ INIT:
     DIM  A( 2): REM ANGLE COUNTERCLOCKWISE (RADIANS = A*A0)
     DIM  J( 2): REM JOYSTICK STATE
 
-    T(1)=1: A(1)=0: X(1)=X0-4:   Y(1)=Y0: VX(1)=0: VY(1)=0: S(1)=1: R(1)=4: C(1)=0
-    T(2)=1: A(2)=0: X(2)=X0+100: Y(2)=Y0: VX(2)=0: VY(2)=0: S(2)=2: R(2)=4: C(2)=0
+    FOR E=1 TO 2: T(E)=1: A(E)=0: Y(E)=120: VX(E)=0: VY(E)=0: R(E)=4: C(E)=0: NEXT
+    X(1) = 100
+    X(2) = 220
 
     REM    IDX PRI PAL FLP XSZ YSZ DEPTH (8-BIT)
     SPRITE 1,  3,  8,  0,  0,  0,  1
@@ -41,9 +41,7 @@ INIT:
     PRINT "PRESS START/ENTER TO QUIT"
     F = 0
 MAINLOOP:
-    REM FRAME COUNTER
-    REM LOCATE 2,1: PRINT F: F = F + 1
-    REM IF F > 59 THEN F = 0
+    ZT = TIME
 
     REM READ JOYSTICK INPUT
     KB   = JOY(0): REM KEYBOARD
@@ -58,7 +56,7 @@ MAINLOOP:
         IF C(E) > 0 THEN C(E) = C(E) - 1
         ON T(E) GOSUB SHIP, MISSILE
         NEXT E
-
+    
     F=1: G=2: GOSUB TESTCRASH
     IF NOT B THEN GOTO SHIPMISS
         E=1: GOSUB EXPLODE
@@ -66,7 +64,9 @@ MAINLOOP:
         END
         SHIPMISS:
 
-    REM SLEEP 0
+    REM HOW MANY FRAMES DID IT TAKE FOR ONE ITERATION?
+    LOCATE 2,1: PRINT "                ":LOCATE 2,1: PRINT STR$(TIME - ZT)
+
     GOTO MAINLOOP
 
 SHIP:
@@ -81,8 +81,8 @@ SHIP:
     IF A(E) > 15 THEN A(E) = 0
     IF A(E) < 0 THEN A(E) = 15
 
-    REM    IDX    BNK ADR                  DEPTH (8-BIT)
-    SPRMEM S(E),  1,  $100 * A(E) + $3000, 1
+    REM    IDX BNK ADR                  DEPTH (8-BIT)
+    SPRMEM E,  1,  $100 * A(E) + $3000, 1
 
     REM THRUST
     IF NOT J(E) AND $008 THEN NOTHRUST              : REM D-PAD UP
@@ -105,7 +105,7 @@ MISSILE:
     IF C(E) > 0 THEN GOTO NOFIZZLE
         REM FIZZLE OUT
         T(E) = 0            : REM FREE ENTITY SLOT
-        SPRITE S(E), 0      : REM TURN OFF SPRITE
+        SPRITE E, 0         : REM TURN OFF SPRITE
         RETURN
         NOFIZZLE:
 
@@ -130,8 +130,8 @@ MOVE:
     IF Y(E) > 235 THEN Y(E) = 0
     IF Y(E) < 0 THEN Y(E) = 235
 
-    REM    IDX   X          Y
-    MOVSPR S(E), X(E)-R(E), Y(E)-R(E)
+    REM    IDX  X          Y
+    MOVSPR E,   X(E)-R(E), Y(E)-R(E)
 
     RETURN
 
@@ -167,10 +167,11 @@ FIRE:
     X=0: Y=-1: T=A(E)*A0: GOSUB ROTATE
     VX(M) = 2 * X + VX(E)
     VY(M) = 2 * Y + VY(E)
-    X(M)  = 10 * X + X(E)
+    REM KLUDGE: GIVE THE MISSILE A LITTLE EXTRA BOOST TO START SO IT DOES NOT
+    REM COLLIDE WITH THE SHIP THAT JUST LAUNCHED IT
+    X(M)  = 10 * X + X(E): REM MAGIC NUMBER INSTEAD OF R(E)
     Y(M)  = 10 * Y + Y(E)
     T(M)  = 2
-    S(M)  = M
     R(M)  = 1
     C(M)  = 120: REM FIZZLE OUT AFTER THIS TIME
 
