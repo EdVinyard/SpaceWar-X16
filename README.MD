@@ -6,6 +6,8 @@ project is to demonstrate the ability to write a simple, self-contained, two
 player, arcade-style game in BASIC that is easy to understand and modify by
 novice programmers.
 
+![screenshot taken in emulator](screenshot_emulator.png)
+
 ## Running
 
 `SPACEWAR.BAS` is `spacewar.basl` processed through the
