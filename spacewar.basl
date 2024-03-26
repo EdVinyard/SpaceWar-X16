@@ -10,7 +10,17 @@ INIT:
     GOSUB MAKESPRITES
 
     E  =  0: REM ENTITY INDEX
-    EC = 10: REM TOTAL ENTITY COUNT
+    EC =  4: REM TOTAL ENTITY COUNT
+
+    REM FAST ROTATION OF UNIT VECTOR (0,-1) IN INCREMENTS OF A0
+    REM I.E., RX(I) IS THE X-COORDINATE OF THE VECTOR ROTATED I*A0 RADIANS
+    DIM RX(15)
+    DIM RY(15)
+    FOR I=0 TO 15
+        X=0: Y=-1: T=I*A0: GOSUB ROTATE
+        RX(I) = X
+        RY(I) = Y
+        NEXT
 
     REM TURN OFF ALL SPRITES
     FOR I = 1 TO EC: SPRITE I,0: NEXT
@@ -18,8 +28,8 @@ INIT:
     REM ENTITY PROPERTIES
     DIM  T(EC): REM TYPE EMPTY=0 SHIP=1 MISSILE=2
     DIM  R(EC): REM RADIUS OF ENTITY IN PIXELS
-    DIM  X(EC): REM X-POSITION, CENTER OF ENTITY
-    DIM  Y(EC): REM Y-POSITION, CENTER OF ENTITY
+    DIM PX(EC): REM X-POSITION, CENTER OF ENTITY
+    DIM PY(EC): REM Y-POSITION, CENTER OF ENTITY
     DIM VX(EC): REM X-VELOCITY
     DIM VY(EC): REM Y-VELOCITY
     DIM  C(EC): REM COUNTDOWN TIMER, -1 PER MAINLOOP INTERATION
@@ -30,15 +40,18 @@ INIT:
     DIM  A( 2): REM ANGLE COUNTERCLOCKWISE (RADIANS = A*A0)
     DIM  J( 2): REM JOYSTICK STATE
 
-    FOR E=1 TO 2: T(E)=1: A(E)=0: Y(E)=120: VX(E)=0: VY(E)=0: R(E)=4: C(E)=0: NEXT
-    X(1) = 100
-    X(2) = 220
+    REM INIT SHIP PROPERTIES
+    FOR E=1 TO 2: T(E)=1: A(E)=0: PY(E)=120: VX(E)=0: VY(E)=0: R(E)=4: C(E)=0: NEXT
+    PX(1) = 100
+    PX(2) = 220
+
+    REM INIT MISSILE PROPERTIES
+    FOR E=3 TO 4: T(E)=0: R(E)=1: NEXT
 
     REM    IDX PRI PAL FLP XSZ YSZ DEPTH (8-BIT)
     SPRITE 1,  3,  8,  0,  0,  0,  1
     SPRITE 2,  3,  15, 0,  0,  0,  1
 
-    PRINT "PRESS START/ENTER TO QUIT"
     F = 0
 MAINLOOP:
     ZT = TIME
@@ -53,7 +66,6 @@ MAINLOOP:
     IF J(2) = -1 THEN J(2) = KB
 
     FOR E = 1 TO EC
-        IF C(E) > 0 THEN C(E) = C(E) - 1
         ON T(E) GOSUB SHIP, MISSILE
         NEXT E
     
@@ -73,11 +85,11 @@ SHIP:
     REM UPDATE SHIP E
     REM INPUT E SHIP INDEX (1-2)
 
-    IF J(E) AND $010 THEN END                       : REM START BUTTON
+    REM IF J(E) AND $010 THEN END                       : REM START BUTTON
 
     REM ROTATION
-    IF J(E) AND $002 THEN A(E) = A(E) + 1           : REM D-PAD LEFT
-    IF J(E) AND $001 THEN A(E) = A(E) - 1           : REM D-PAD RIGHT
+    IF J(E) AND $002 THEN A(E) = A(E) + 1               : REM D-PAD LEFT
+    IF J(E) AND $001 THEN A(E) = A(E) - 1               : REM D-PAD RIGHT
     IF A(E) > 15 THEN A(E) = 0
     IF A(E) < 0 THEN A(E) = 15
 
@@ -85,22 +97,23 @@ SHIP:
     SPRMEM E,  1,  $100 * A(E) + $3000, 1
 
     REM THRUST
-    IF NOT J(E) AND $008 THEN NOTHRUST              : REM D-PAD UP
-        X=0: Y=-0.5: T=A(E)*A0: GOSUB ROTATE
-        VX(E) = VX(E) + X
-        VY(E) = VY(E) + Y
+    IF NOT J(E) AND $008 THEN NOTHRUST                  : REM D-PAD UP
+        ZA = A(E)
+        VX(E) = VX(E) + RX(ZA)
+        VY(E) = VY(E) + RY(ZA)
         NOTHRUST:
 
     GOSUB MOVE
 
     REM FIRE A MISSILE
-    IF C(E) = 0 AND (J(E) AND $800) THEN GOSUB FIRE : REM A BUTTON
+    IF (T(E+2) = 0) AND (J(E) AND $800) THEN GOSUB FIRE: REM A BUTTON
 
     RETURN
 
 MISSILE: 
     REM UPDATE MISSILE E
     REM INPUT E MISSILE INDEX (3 <= E <= EC)
+    C(E) = C(E) - 1
 
     IF C(E) > 0 THEN GOTO NOFIZZLE
         REM FIZZLE OUT
@@ -110,28 +123,28 @@ MISSILE:
         NOFIZZLE:
 
     F = E
-    FOR G = 1 TO 2
-        GOSUB TESTCRASH: REM INPUTS F, G
-        IF B THEN E=G: GOSUB EXPLODE: END
-        NEXT G
+    G=1: GOSUB TESTCRASH
+    IF B THEN GOSUB EXPLODE: END
+    G=2: GOSUB TESTCRASH
+    IF B THEN GOSUB EXPLODE: END
 
-    GOSUB MOVE
-    RETURN
+    REM GOSUB MOVE
+    REM RETURN
 
 MOVE:
     REM UPDATE ENTITY POSITION AND SPRITE BASED ON VELOCITY
     REM INPUT E ENTITY INDEX
 
-    X(E) = X(E) + VX(E)
-    IF X(E) > 315 THEN X(E) = 0
-    IF X(E) < 0 THEN X(E) = 315
+    PX(E) = PX(E) + VX(E)
+    IF PX(E) > 315 THEN PX(E) = 0
+    IF PX(E) < 0 THEN PX(E) = 315
 
-    Y(E) = Y(E) + VY(E)
-    IF Y(E) > 235 THEN Y(E) = 0
-    IF Y(E) < 0 THEN Y(E) = 235
+    PY(E) = PY(E) + VY(E)
+    IF PY(E) > 235 THEN PY(E) = 0
+    IF PY(E) < 0 THEN PY(E) = 235
 
-    REM    IDX  X          Y
-    MOVSPR E,   X(E)-R(E), Y(E)-R(E)
+    REM    IDX  X           Y
+    MOVSPR E,   PX(E)-R(E), PY(E)-R(E)
 
     RETURN
 
@@ -141,39 +154,33 @@ TESTCRASH:
     REM INPUT  G ENTITY INDEX
     REM OUTPUT B 0=FALSE, OTHERWISE TRUE
 
-    ZX = X(F) - X(G): REM X-DISTANCE
-    ZY = Y(F) - Y(G): REM Y-DISTANCE
     ZH = R(F) + R(G): REM MAXIMUM COLLISION DISTANCE
+    ZX = PX(F) - PX(G): REM X-DISTANCE
+    IF ZX > ZH THEN B=0: RETURN
+    ZY = PY(F) - PY(G): REM Y-DISTANCE
+    IF ZY > ZH THEN B=0: RETURN
     B = ZX*ZX + ZY*ZY <= ZH*ZH
     RETURN
 
 EXPLODE:
-    RECT X(E)-R(E),Y(E)-R(E), X(E)+R(E),Y(E)+R(E), 4
+    RECT PX(E)-R(E),PY(E)-R(E), PX(E)+R(E),PY(E)+R(E), 4
     RETURN
 
 FIRE:
     REM ONE SHIP FIRES A MISSILE
     REM INPUT E ENTITY INDEX OF SHIP THAT FIRES
-    C(E) = 40: REM COOLDOWN UNTIL NEXT MISSILE LAUNCH
+    M = E + 2   : REM ENTITY INDEX
+    T(M)  = 2   : REM TYPE MISSILE
+    C(M)  = 60  : REM FIZZLE OUT AFTER THIS TIME
 
-    REM FIND AN UNUSED ENTITY INDEX
-    REM M - ENTITY INDEX
-    FOR M = 3 TO EC+1
-        IF M = EC+1 THEN RETURN
-        IF T(M) = 0 THEN LAUNCH
-        NEXT M
+    ZA = A(E)
+    VX(M) = 3 * RX(ZA) + VX(E)
+    VY(M) = 3 * RY(ZA) + VY(E)
 
-    LAUNCH:
-    X=0: Y=-1: T=A(E)*A0: GOSUB ROTATE
-    VX(M) = 2 * X + VX(E)
-    VY(M) = 2 * Y + VY(E)
     REM KLUDGE: GIVE THE MISSILE A LITTLE EXTRA BOOST TO START SO IT DOES NOT
     REM COLLIDE WITH THE SHIP THAT JUST LAUNCHED IT
-    X(M)  = 10 * X + X(E): REM MAGIC NUMBER INSTEAD OF R(E)
-    Y(M)  = 10 * Y + Y(E)
-    T(M)  = 2
-    R(M)  = 1
-    C(M)  = 120: REM FIZZLE OUT AFTER THIS TIME
+    PX(M)  = 10 * RX(ZA) + PX(E): REM MAGIC NUMBER INSTEAD OF R(E)
+    PY(M)  = 10 * RY(ZA) + PY(E)
 
     REM    IDX PRI PAL FLP XSZ YSZ DEPTH (8-BIT)
     SPRITE M,  3,  0,  0,  0,  0,  1
@@ -181,8 +188,8 @@ FIRE:
     REM    IDX BNK ADR    DEPTH (8-BIT)
     SPRMEM M,  1,  $4000, 1
 
-    REM    IDX X     Y
-    MOVSPR M,  X(M), Y(M)
+    REM    IDX X      Y
+    MOVSPR M,  PX(M), PY(M)
 
     RETURN
 
