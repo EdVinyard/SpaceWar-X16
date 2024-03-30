@@ -13,6 +13,10 @@ novice programmers.
 `SPACEWAR.BAS` is `spacewar.basl` processed through the
 [BASLOAD](https://github.com/stefan-b-jakobsson/basload) program.
 
+```
+.\x16emu.exe -scale 2 -startin spacewar -prg spacewar\BASLOAD.PRG -run
+```
+
 On the emulator, start-up should look something like.
 
 ```

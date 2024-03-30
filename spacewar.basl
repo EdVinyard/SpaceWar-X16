@@ -25,7 +25,7 @@ INIT:
     REM TURN OFF ALL SPRITES
     FOR I = 1 TO EC: SPRITE I,0: NEXT
 
-    REM ENTITY PROPERTIES
+    REM ENTITY PROPERTIES FOR BOTH SHIPS AND MISSILES
     DIM  T(EC): REM TYPE EMPTY=0 SHIP=1 MISSILE=2
     DIM  R(EC): REM RADIUS OF ENTITY IN PIXELS
     DIM PX(EC): REM X-POSITION, CENTER OF ENTITY
@@ -55,20 +55,12 @@ INIT:
     F = 0
 MAINLOOP:
     ZT = TIME
-
-    REM READ JOYSTICK INPUT
-    KB   = JOY(0): REM KEYBOARD
-    J(1) = JOY(1)
-    J(2) = JOY(2)
-
-    REM USE KEYBOARD WHEN A JOYSTICK IS MISSING
-    IF J(1) = -1 THEN J(1) = KB
-    IF J(2) = -1 THEN J(2) = KB
+    NF = ZT + 6                                         : REM NEXT FRAME START
 
     FOR E = 1 TO EC
         ON T(E) GOSUB SHIP, MISSILE
         NEXT E
-    
+
     F=1: G=2: GOSUB TESTCRASH
     IF NOT B THEN GOTO SHIPMISS
         E=1: GOSUB EXPLODE
@@ -77,7 +69,23 @@ MAINLOOP:
         SHIPMISS:
 
     REM HOW MANY FRAMES DID IT TAKE FOR ONE ITERATION?
-    LOCATE 2,1: PRINT "                ":LOCATE 2,1: PRINT STR$(TIME - ZT)
+    LOCATE 1,1: PRINT STR$(TIME - ZT);" "
+
+    REM BUFFER PLAYER INPUT UNTIL NEXT FRAME
+    J(1) = 0                                        : REM RESET INPUT BUFFERS
+    J(2) = 0
+    BUFFERINPUT:
+        J(1) = JOY(1)                               : REM JOYSTICKS
+        J(2) = JOY(2)
+
+        KB   = JOY(0)                               : REM KEYBOARD
+        REM USE KEYBOARD WHEN A JOYSTICK IS MISSING
+        IF J(1) = -1 THEN J(1) = KB
+        IF J(2) = -1 THEN J(2) = KB        
+
+        J(1) = J(1) OR KB                           : REM BUFFER INPUT
+        J(2) = J(2) OR KB
+        IF TIME < NF THEN BUFFERINPUT
 
     GOTO MAINLOOP
 
@@ -93,7 +101,7 @@ SHIP:
     IF A(E) > 15 THEN A(E) = 0
     IF A(E) < 0 THEN A(E) = 15
 
-    REM    IDX BNK ADR                  DEPTH (8-BIT)
+    REM    IDX BNK ADR                  DEPTH (8-BIT)              
     SPRMEM E,  1,  $100 * A(E) + $3000, 1
 
     REM THRUST
@@ -101,9 +109,9 @@ SHIP:
         ZA = A(E)
         VX(E) = VX(E) + RX(ZA)
         VY(E) = VY(E) + RY(ZA)
-        NOTHRUST:
+                NOTHRUST:
 
-    GOSUB MOVE
+GOSUB MOVE
 
     REM FIRE A MISSILE
     IF (T(E+2) = 0) AND (J(E) AND $800) THEN GOSUB FIRE: REM A BUTTON
@@ -128,13 +136,14 @@ MISSILE:
     G=2: GOSUB TESTCRASH
     IF B THEN GOSUB EXPLODE: END
 
+    REM FALL THROUGH INTO MOVE SUBROUTINE
     REM GOSUB MOVE
     REM RETURN
 
 MOVE:
     REM UPDATE ENTITY POSITION AND SPRITE BASED ON VELOCITY
     REM INPUT E ENTITY INDEX
-
+    
     PX(E) = PX(E) + VX(E)
     IF PX(E) > 315 THEN PX(E) = 0
     IF PX(E) < 0 THEN PX(E) = 315
@@ -154,10 +163,10 @@ TESTCRASH:
     REM INPUT  G ENTITY INDEX
     REM OUTPUT B 0=FALSE, OTHERWISE TRUE
 
-    ZH = R(F) + R(G): REM MAXIMUM COLLISION DISTANCE
-    ZX = PX(F) - PX(G): REM X-DISTANCE
+    ZH = R(F) + R(G)                    : REM MAXIMUM COLLISION DISTANCE
+    ZX = PX(F) - PX(G)                  : REM X-DISTANCE
     IF ZX > ZH THEN B=0: RETURN
-    ZY = PY(F) - PY(G): REM Y-DISTANCE
+    ZY = PY(F) - PY(G)                  : REM Y-DISTANCE
     IF ZY > ZH THEN B=0: RETURN
     B = ZX*ZX + ZY*ZY <= ZH*ZH
     RETURN
