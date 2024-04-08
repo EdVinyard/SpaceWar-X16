@@ -1,1 +1,2 @@
-BASLOAD.PRG
+BASLOAD*.PRG*
+*.list

@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "stdio.h": "c",
+        "cx16.h": "c",
+        "KERNALCALL.C": "cpp"
+    }
+}

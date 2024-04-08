@@ -1,0 +1,98 @@
+REM
+REM  WRITE BINARY DATA TO A FILE AND LOAD IT BACK
+REM  INTO VIDEO RAM FOR USE AS A SPRITE.
+REM
+INIT:
+    SA = $0C00                      : REM RAM SPRITE START ADDR
+    CT = 64                         : REM SPRITE SIZE (BYTE COUNT)
+    DA = $3000                      : REM VRAM SPRITE START ADDR
+    VA = DA+256                     : REM VRAM VERIFY SPRITE START ADDR
+    F$= "SPRITEX.BIN"               : REM FILE NAME
+
+    CLS
+    PRINT
+    PRINT " ORIGINAL"
+    PRINT
+    PRINT "FROM FILE"
+    PRINT
+
+    REM DRAW AN 8X8 SPRITE "X", BUT IN NORMAL RAM ===================
+    FOR R = 0 TO 7                  : REM ROWS
+        FOR C = 0 TO 7              : REM COLUMNS
+            L = 0                   : REM COLOR BLACK
+            IF R=C OR R+C=7 THEN L=1: REM COLOR WHITE
+            POKE SA + (8*R) + C, L
+            NEXT C
+        NEXT R
+
+    REM COPY THE SPRITE INTO VIDEO RAM ==============================
+    GOSUB SPRITECOPY
+
+    REM SHOW THE SPRITE =============================================
+    REM    IDX BNK ADR DEPTH (1 = 8-BIT)
+    SPRMEM 1,  1,  DA, 1
+
+    REM    IDX PRI PAL FLP XSZ YSZ DEPTH (1 = 8-BIT)
+    SPRITE 1,  3,  0,  0,  0,  0,  1
+
+    REM    IDX X    Y
+    MOVSPR 1,  100, 8
+
+    REM SAVE THE SPRITE TO A FILE (OVERWRITING THE FILE) ============
+    BSAVE "@:"+F$, 8, 0, SA, SA+CT
+
+    REM LOAD THE SPRITE FROM DISK ===================================
+    BVLOAD F$, 8, 1, VA
+    REM FOR I=16 TO 31: VPOKE 1, VA+I, 3:NEXT : REM VERIFICATION TEST ONLY!
+
+    REM DRAW THE LOADED SPRITE FOR VISUAL VERIFICATION ==============
+    REM    IDX BNK ADR DEPTH (1 = 8-BIT)
+    SPRMEM 2,  1,  VA, 1
+
+    REM    IDX PRI PAL FLP XSZ YSZ DEPTH (1 = 8-BIT)
+    SPRITE 2,  3,  0,  0,  0,  0,  1
+
+    REM    IDX X    Y
+    MOVSPR 2,  100, 24
+
+    REM COMPARE THE TWO COPIES BIT BY BIT ===========================
+    E = 0                           : REM (E)RROR - BOOLEAN
+    FOR I = 0 TO CT-1
+        O = PEEK(SA+I)              : REM (O)RIGINAL
+        C = VPEEK(1, VA+I)          : REM (C)OPY LOADED FROM DISK
+        IF O = C THEN NOERROR:
+            E = 1
+            PRINT "ERROR AT INDEX ";I;" ORIGINAL ";O;" <> COPY ";C
+            NOERROR:
+        NEXT I
+    IF E = 0 THEN PRINT "COPY MATCHES ORIGINAL"
+    PRINT
+
+    REM WAIT FOR KEYPRESS TO QUIT ===================================
+    PRINT "PRESS ANY KEY TO QUIT"
+    AWAITKEY:
+    GET K$
+    IF K$="" THEN AWAITKEY
+
+    REM TURN OFF ALL SPRITES ========================================
+    FOR I = 1 TO 2
+        REM    IDX PRI
+        SPRITE I,  0
+        NEXT I
+
+    END
+
+SPRITECOPY:
+    REM COPY 8-BIT VALUES FROM RAM INTO SPRITE VRAM
+    REM WARNING: ONLY WORKS UP TO $FFFF!
+    REM INPUT SA SOURCE ADDRESS
+    REM INPUT DA DESTINATION ADDRESS (>=$3000)
+    REM INPUT CT BYTE COUNT (<32767)
+
+    FOR ZI = 0 TO CT-1
+        ZL = PEEK(SA + ZI)
+        REM   ADDR HI, ADDR LO, VALUE
+        VPOKE 1,       DA + ZI, ZL
+        NEXT ZI
+
+    RETURN

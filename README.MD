@@ -1,46 +1,14 @@
-A (work-in-progress) game in the spirit of
+Work-in-progress games for the [Commander X16]() in the spirit of
 [Spacewar!](https://en.wikipedia.org/wiki/Spacewar!), written in
-[BASIC](https://github.com/X16Community/x16-docs/blob/master/X16%20Reference%20-%2004%20-%20BASIC.md),
-for the [Commander X16](https://www.commanderx16.com/).  The purpose of this
-project is to demonstrate the ability to write a simple, self-contained, two
-player, arcade-style game in BASIC that is easy to understand and modify by
-novice programmers.
+[BASIC](https://github.com/X16Community/x16-docs/blob/master/X16%20Reference%20-%2004%20-%20BASIC.md)
+and C/assembly (using [CC65](https://cc65.github.io/doc/) ), along with
+experiments and examples used to understand the hardware and compiler/assembler
+behavior.
 
-![gameplay recording from emulator](spacewar.gif)
-
-## Running
-
-`SPACEWAR.BAS` is `spacewar.basl` processed through the
-[BASLOAD](https://github.com/stefan-b-jakobsson/basload) program.
-
-```
-.\x16emu.exe -scale 2 -startin spacewar -prg spacewar\BASLOAD.PRG -run
-```
-
-On the emulator, start-up should look something like.
-
-```
-SEARCHING FOR BASLOAD.PRG
-LOADING FROM $0801 TO $175D
-READY.
-RUN
-
-*** BASLOAD 0.2.6 ***
-...
-READY.
-!L
-
-*** BASLOAD 0.2.6 ***
-
-ENTER FILE NAME: SPACEWAR.BASL
-LOADING...
-READY.
-RUN
-```
-
-On the developer board, with January 2024 SD card image, you'll start with the
-following, but everything else should be the same.
-
-```
-LOAD"DEV/BASLOAD.PRG
-```
+- [BASIC](./BASIC/) - a self-contained Spacewar! game written entirely in BASIC
+- [KernalCall](./KernalCall/) - experiments with CC65 to call [Commander X16 Kernal routines](https://github.com/X16Community/x16-docs/blob/master/X16%20Reference%20-%2005%20-%20KERNAL.md)
+- [SpriteLoad](./SpriteLoad/) - C program to load sprite data from disk and display it
+- [SpriteSave](./SpriteSave/) - BASIC program to create a sprite and and save it to disk
+- [cx16palette.py](./cx16palette.py) - Python 3 program that prints the default
+Commander X16 pallete in a format suitable for the "Colors" > "Import Colors"
+feature of the https://www.pixilart.com/ sprite editor.
