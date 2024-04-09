@@ -51,7 +51,7 @@ struct VeraSpriteAttr {
      */
     unsigned char height_width_palette_offset;
 };
-#define VERA_SPRITE_ATTR (0xFC00)
+#define VERA_SPRITE_ATTR ((unsigned long)0x1FC00)
 
 /** 
  * CHROUT kernal routine (AKA, "BSOUT") that prints a single character at the
@@ -152,23 +152,51 @@ load_sprite_no_error:
     return 0;
 }
 
-void main() {
-    vera_layer_enable(0b11);
-    vera_sprites_enable(1);
+void __fastcall__ putdxb(char value, char end) {
+    char mask = 0b10000000;
 
-    // STARTHERE 
-    //
-    // sprite data seems to be loaded into VRAM correctly, but it does not
-    // appear (BASIC commands can be used to configure the sprite, but the
-    // following code doesn't work.)
-    vpoke(0x00,         VERA_SPRITE_ATTR+0); // addr lo
-    vpoke(BPP_8 | 0x30, VERA_SPRITE_ATTR+1); // mode, addr hi
-    vpoke(0,            VERA_SPRITE_ATTR+2); // x-coord lo (256)
-    vpoke(1,            VERA_SPRITE_ATTR+3); // x-coord hi
+    putchar('b');
+    for (mask = 0b10000000; mask != 0; mask >>= 1) {
+        putchar((value & mask) ? '1' : '0');
+
+        if (0b00010000 == mask) {
+            putchar(' ');
+        }
+    }
+
+    printf(" d%03d x%02x%c", value, value, end);
+}
+
+void print_sprite_attrs(char sprite_index) {
+    char i = 0;
+    unsigned long addr = VERA_SPRITE_ATTR + (sprite_index * sizeof(struct VeraSpriteAttr));
+    char value = 0;
+    
+    for (i = 0; i < 8; i++) {
+        printf("+%d  ", i);
+        putdxb(vpeek(addr + i), '\n');
+    }
+    putchar('\n');
+}
+
+#define VERA_LAYER_ALL (0b11)
+#define VERA_SPRITE_ENABLE (1)
+
+void main() {
+    vera_layer_enable(VERA_LAYER_ALL);
+    vera_sprites_enable(VERA_SPRITE_ENABLE);
+
+    // address is $13000 >> 5 == $980
+    vpoke(0x80,         VERA_SPRITE_ATTR+0); // addr bits 12:5 (bits 4:0 omitted)
+    vpoke(BPP_8 | 0x09, VERA_SPRITE_ATTR+1); // mode, addr bits 16:13
+    vpoke(1,            VERA_SPRITE_ATTR+2); // x-coord lo (513)
+    vpoke(2,            VERA_SPRITE_ATTR+3); // x-coord hi
     vpoke(10,           VERA_SPRITE_ATTR+4); // y-coord lo (10)
     vpoke(0,            VERA_SPRITE_ATTR+5); // y-coord hi
     vpoke(FRONT,        VERA_SPRITE_ATTR+6); // coll mask, z-depth, v- and h-flip
     vpoke(0,            VERA_SPRITE_ATTR+7); // height, width, palette offset
+
+    print_sprite_attrs(0);
 
     print_sprite_0();
     load_sprite("spritex.bin", (char*)0x3000); // BEWARE: with alt chars, case is swapped!
