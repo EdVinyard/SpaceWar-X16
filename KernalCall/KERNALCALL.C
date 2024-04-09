@@ -65,5 +65,7 @@ void main() {
     // pseudo-register is a zeropage pointer to the base of the C-stack."
     CHROUT;
 
+    // Take a single-frame screenshot; assumes x16emu was started with "-gif"
+    // command line option.
     *((char*)0x9FB5) = 1;
 }

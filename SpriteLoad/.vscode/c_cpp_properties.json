@@ -1,0 +1,16 @@
+{
+    "configurations": [
+        {
+            "name": "CommanderX16",
+            "includePath": [
+                "/Users/ed/Desktop/x16/cc65/include/**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ]
+        }
+    ],
+    "version": 4
+}
