@@ -182,13 +182,41 @@ void print_sprite_attrs(char sprite_index) {
 #define VERA_LAYER_ALL (0b11)
 #define VERA_SPRITE_ENABLE (1)
 
+/**
+ * Set a sprite bitmap data address and color depth.
+ *
+ * @param i sprite index
+ * @param bpp bits-per-pixel (`BPP_8` or `BPP_4`)
+ * @param sprite_data_addr address of start of sprite data (e.g., $13000); must
+ * be evenly divisible by 32
+ */
+void sprite_set_addr(char i, char bpp, unsigned long sprite_data_addr) {
+    // beginning of the sprite attribute block/structure
+    unsigned long sprite_attr_addr = VERA_SPRITE_ATTR + (8 * i);
+    char bits_12_5 = 0;
+    char bits_16_13 = 0;
+
+    // discard the low 5 bits; address must be a multiple of 32
+    sprite_data_addr >>= 5;
+    bits_12_5 = (char)sprite_data_addr;
+
+    // discard the low byte
+    sprite_data_addr >>= 8;
+    bits_16_13 = (char)sprite_data_addr;
+
+    // printf("hi %x lo %x\n", bits_16_13, bits_12_5);
+    vpoke(      bits_12_5,  sprite_attr_addr);
+    vpoke(bpp | bits_16_13, sprite_attr_addr + 1);
+}
+
 void main() {
     vera_layer_enable(VERA_LAYER_ALL);
     vera_sprites_enable(VERA_SPRITE_ENABLE);
 
     // address is $13000 >> 5 == $980
-    vpoke(0x80,         VERA_SPRITE_ATTR+0); // addr bits 12:5 (bits 4:0 omitted)
-    vpoke(BPP_8 | 0x09, VERA_SPRITE_ATTR+1); // mode, addr bits 16:13
+    // vpoke(0x80,         VERA_SPRITE_ATTR+0); // addr bits 12:5 (bits 4:0 omitted)
+    // vpoke(BPP_8 | 0x09, VERA_SPRITE_ATTR+1); // mode, addr bits 16:13
+    sprite_set_addr(0, BPP_8, 0x13000);
     vpoke(1,            VERA_SPRITE_ATTR+2); // x-coord lo (513)
     vpoke(2,            VERA_SPRITE_ATTR+3); // x-coord hi
     vpoke(10,           VERA_SPRITE_ATTR+4); // y-coord lo (10)
