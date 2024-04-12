@@ -237,12 +237,12 @@ void main() {
     vpoke(10,           VERA_SPRITE_ATTR+4); // y-coord lo (10)
     vpoke(0,            VERA_SPRITE_ATTR+5); // y-coord hi
     vpoke(FRONT,        VERA_SPRITE_ATTR+6); // coll mask, z-depth, v- and h-flip
-    vpoke(0,            VERA_SPRITE_ATTR+7); // height, width, palette offset
+    vpoke(0b01010000,   VERA_SPRITE_ATTR+7); // height, width, palette offset
 
     print_sprite_attrs(0);
 
     print_sprite_0();
-    load_sprite("spritex.bin", (char*)0x3000); // BEWARE: with alt chars, case is swapped!
+    load_sprite("earth.bin", (char*)0x3000); // BEWARE: with alt chars, case is swapped!
     print_sprite_0();
 
     // Take a single-frame screenshot; assumes x16emu was started with "-gif"

@@ -1,2 +1,3 @@
 BASLOAD*.PRG*
 *.list
+**/__pycache__

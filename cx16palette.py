@@ -1,6 +1,9 @@
 '''
-Print the default Commander X16 pallete in a format suitable for the "Colors" >
-"Import Colors" feature of the https://www.pixilart.com/ sprite editor.
+As a program, prints the default Commander X16 pallete in a format suitable for
+the "Colors" > "Import Colors" feature of the https://www.pixilart.com/ sprite
+editor.
+
+As a library, import 
 '''
 
 ## from https://github.com/fvdhoef/vera-module/blob/rev4/doc/VERA%20Programmer's%20Reference.md#palette
@@ -31,7 +34,7 @@ def flatten(arrays):
     return result
 
 
-def color_12bit_to_24bit(twelve_bit_triple):
+def color_12bit_to_24bit(twelve_bit_triple: str) -> str:
     '''
     Given a 12-bit hexidecimal RGB triple (e.g., "07f"),
     returns the equivalent 24-bit RGB triple (e.g., "0077ff").
@@ -39,20 +42,79 @@ def color_12bit_to_24bit(twelve_bit_triple):
     return ''.join( c+c for c in twelve_bit_triple ) # example: '07f' => '0077ff'
 
 
+def color_12bit_to_argb(twelve_bit_triple: str) -> tuple[int, int, int, int]:
+    '''
+    Given a 12-bit hexidecimal RGB triple (e.g., "18f"),
+    returns the equivalent 24-bit RGB triple (e.g., `(0, 17, 136, 255)`).
+    '''
+    r, g, b = ( int(c+c, base=16) for c in twelve_bit_triple )
+
+    if r == g == b == 0:
+        return (0, 0, 0, 0)
+
+    return (r, g, b, 255)
+
+
+## Replace line breaks with ','.
+comma_separated_color_triples = ','.join( 
+    l 
+    for l 
+    in three_byte_color_strings.splitlines() 
+    if l != '' 
+    )
+
+comma_separated_color_triple_strs = comma_separated_color_triples.split(',')     
+
+## Convert colors from 12-bit to 24-bit hexidecimal notation.
+palette = [
+    color_12bit_to_24bit(t) 
+    for t 
+    in comma_separated_color_triple_strs
+    ]
+
+rgba_palette: list[tuple[int, int, int]] = [ 
+    color_12bit_to_argb(color_triple_str)
+    for color_triple_str
+    in comma_separated_color_triple_strs
+    ]
+
+
+def hexify(rgba: tuple[int, int, int, int]) -> str:
+    '''
+    Given a tuple of 8-bit integers representing alpha, red, green, and blue
+    pixel values, return the (somewhat) human-friendly string of hexidecimal
+    values.
+
+    Example: given (8, 9, 10, 11) returns "08090a0b"
+    '''
+    return ''.join(
+        f'{hex(i).replace('0x', ''):0>2}'
+        for i in rgba
+        )
+
+
+def rgba_to_index(rgba: tuple[int, int, int, int]) -> int:
+    '''
+    Given a tuple of 8-bit integers representing alpha, red, green, and blue
+    pixel values, either return the corresponding index into the Commander X16's
+    default palette or throw `ValueError`.
+    '''
+    try:
+        return rgba_palette.index(rgba)
+    except ValueError:
+        raise ValueError(
+            f'pixel ARGB value {hexify(rgba)} / {rgba} is not part of '
+            f'the default Commander X16 color palette')
+
+
+def print_pixelart_palette():
+    '''
+    prints the default Commander X16 pallete in a format suitable for the
+    "Colors" > "Import Colors" feature of the https://www.pixilart.com/ sprite
+    editor.
+    '''    
+    print(','.join(palette))
+
+
 if __name__ == '__main__':
-    ## Replace line breaks with ','.
-    comma_separated_color_triples = ','.join( 
-        l 
-        for l 
-        in three_byte_color_strings.splitlines() 
-        if l != '' 
-        )
-
-    ## Convert colors from 12-bit to 24-bit hexidecimal notation.
-    palette = ','.join( 
-        color_12bit_to_24bit(t) 
-        for t 
-        in comma_separated_color_triples.split(',') 
-        )
-
-    print(palette)
+    print_pixelart_palette()
