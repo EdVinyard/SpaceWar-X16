@@ -19,14 +19,23 @@
 #define OFFSET_0 (0)
 
 /**
+ * TODO: Is this even useful?  We have to use VPEEK and VPOKE, or manually
+ * perform serial writes to VERA registers in order to write to VRAM, so I'm not
+ * sure there's any point to this.  Maybe you coule write the structure data
+ * into RAM first, and then fast-copy into VRAM?
+ * 
  * https://github.com/X16Community/x16-docs/blob/master/X16%20Reference%20-%2009%20-%20VERA%20Programmer's%20Reference.md#sprite-attributes
  */
 struct VeraSpriteAttr {
-    /** low 8 bits of sprite data address */
+    /** 
+     * (low) bits 12 to 5 of the sprite data address; NOTICE: the minimum size
+     * of a sprite is 32 bytes (4 bits * 64 pixels), so bits 4 to 0 of the
+     * adrress are NOT present
+     */
     unsigned char address_lo;
     /**
      * bit 7 :(0 means 4 bit-per-pixel
-     * bit 3-0: high bits of sprite data address
+     * bit 3-0: (high) bits 16 to 13 of the sprite data address
      */
     unsigned char mode_and_address_hi;
     /** low 8 bits of X-coordinate */
@@ -210,6 +219,12 @@ void sprite_set_addr(char i, char bpp, unsigned long sprite_data_addr) {
 }
 
 void main() {
+    // KLUDGE: cc65 always switches to the lower/upper character set.
+    // Put it back!  See https://cc65.github.io/mailarchive/2004-09/4446.html
+    // and https://discord.com/channels/547559626024157184/629903553028161566/1227803125818069102 
+    asm("lda #2");      // PET upper/graph charset
+    asm("jsr $FF62");   // KERNAL routine screen_set_charset
+
     vera_layer_enable(VERA_LAYER_ALL);
     vera_sprites_enable(VERA_SPRITE_ENABLE);
 
