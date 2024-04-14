@@ -1,0 +1,61 @@
+INIT:
+    SCREEN $80
+    RECT 0,0, 319,239, 0
+
+    REM EARTH SPRITE ============================
+    BVLOAD "EARTH.BIN", 8, 1, $4000
+    SPRMEM 0, 1, $4000, 1
+
+    REM    IDX PRI PAL FLP WID HEI COLOR DEPTH
+    SPRITE   0,  3,  0,  0,  1,  1,  1
+
+    MOVSPR 0, 320/2 - 8, 240/2 - 8
+
+    REM STAR SPRITES ============================
+    FOR J = 0 TO 15
+        A = 64*J + $3000    : REM BASE ADDRESS
+        VPOKE 1, A, J       : REM ONE COLORED PIXEL
+        FOR I = 1 TO 63     : REM REST ARE BLACK
+            VPOKE 1, A+I, 0
+            NEXT I
+
+        NEXT J
+
+    M = 1
+    N = 126
+    DIM X(N)
+    DIM Y(N)
+
+    FOR I = 1 TO N
+        X(I) = 320 * RND(M)
+        Y(I) = 240 * RND(M)
+        A = 64 * 15*RND(M) + $3000
+
+        SPRMEM I, 1, A, 1
+
+        REM    IDX PRI PAL FLP WID HEI COLOR DEPTH
+        SPRITE   I,  2,  1,  0,  0,  0,  1
+
+        MOVSPR I, X(I), Y(I)
+        NEXT
+
+FOREVER:
+    F = TI + 120
+
+    REM UPDATE STAR POSITIONS ===================
+    FOR I = 1 TO N
+        X(I) = X(I) + 1
+
+        IF X(I) < 320 THEN NORESET
+            X(I) = 0
+            Y(I) = 240 * RND(M)
+            NORESET:
+
+        NEXT
+
+    FOR I = 1 TO N: MOVSPR I, X(I), Y(I): NEXT
+
+    FRAMEWAIT:
+    IF TI < F THEN FRAMEWAIT
+
+    GOTO FOREVER

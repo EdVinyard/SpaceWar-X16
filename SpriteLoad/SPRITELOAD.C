@@ -232,8 +232,8 @@ void main() {
     // vpoke(0x80,         VERA_SPRITE_ATTR+0); // addr bits 12:5 (bits 4:0 omitted)
     // vpoke(BPP_8 | 0x09, VERA_SPRITE_ATTR+1); // mode, addr bits 16:13
     sprite_set_addr(0, BPP_8, 0x13000);
-    vpoke(1,            VERA_SPRITE_ATTR+2); // x-coord lo (513)
-    vpoke(2,            VERA_SPRITE_ATTR+3); // x-coord hi
+    vpoke(0,            VERA_SPRITE_ATTR+2); // x-coord lo (256)
+    vpoke(1,            VERA_SPRITE_ATTR+3); // x-coord hi
     vpoke(10,           VERA_SPRITE_ATTR+4); // y-coord lo (10)
     vpoke(0,            VERA_SPRITE_ATTR+5); // y-coord hi
     vpoke(FRONT,        VERA_SPRITE_ATTR+6); // coll mask, z-depth, v- and h-flip
