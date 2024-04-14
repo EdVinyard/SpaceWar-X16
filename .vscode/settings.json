@@ -3,6 +3,7 @@
         "stdio.h": "c",
         "cx16.h": "c",
         "KERNALCALL.C": "cpp",
-        "SPRITELOAD.C": "cpp"
+        "SPRITELOAD.C": "cpp",
+        "EARTHSPIN.C": "cpp"
     }
 }
