@@ -2,6 +2,8 @@
 #include <cx16.h>
 #include <stdio.h>
 
+#include "bitmap_clear.h"
+
 #define uint8 unsigned char
 #define uint16 unsigned short
 #define uint32 unsigned long
@@ -265,70 +267,25 @@ void __fastcall__ screenshot() {
     *((char*)0x9FB5) = 1;
 }
 
-/**
- * Fill the entire bitmap layer with a single color.
- *
- * @param color prefer COLOR_* definitions (e.g., COLOR_BLACK, COLOR_WHITE, etc.)
- */
-void bitmap_clear(const uint8 color) {
-    // for (uint32 addr = 0; addr < 0x12c00; addr++) {
-    //     vpoke(color, addr);
-    // }
-
-    // Set up the VERA registers for fast, sequential writes starting at the
-    // beginning of the bitmap VRAM area.  Do this as inline assembly to
-    // preserve the value of the A-register as the color parameter.
-
-    // *((char*)0x9F20) = 0;   // VRAM Address (bits 7:0)
-    asm("ldx #0");
-    asm("stx $9f20");
-
-    // *((char*)0x9F21) = 0;   // VRAM Address (bits 15:8)
-    asm("stx $9f21");
-
-    // *((char*)0x9F22) = 0b00010000; // Addr. Inc.(4) ...(3) VRAM Addr. bit 16 (1)
-    asm("ldx #%b", 0b00010000);
-    asm("stx $9f22");
-
-    // Execute the "poke" to VRAM 76,800 times (320 * 240).
-    // 76,800 = 4 (inner loop unroll) * 256 (X-reg. inner loop) * 75 (Y-reg. outer loop)
-
-    // asm("lda %v", color);// first (color) argument is already in the A-register
-    asm("ldy #75");         // Y-register outer loop counter (counting down)
-    asm("ldx #0");          // X-register inner loop counter (counting up)
-
-BITMAP_CLEAR_LOOP:
-    asm("sta $9f23");       // VRAM data port 0
-    asm("sta $9f23");       // VRAM data port 0
-    asm("sta $9f23");       // VRAM data port 0
-    asm("sta $9f23");       // VRAM data port 0
-
-    asm("inx");             // sets Z status when X rolls over to zero
-    asm("bne %g", BITMAP_CLEAR_LOOP);
-
-    asm("dey");             // sets Z status when Y counts down to zero
-    asm("bne %g", BITMAP_CLEAR_LOOP);
-}
-
 void main() {
     // KLUDGE: cc65 always switches to the lower/upper character set.
     // Put it back!  See https://cc65.github.io/mailarchive/2004-09/4446.html
     // and https://discord.com/channels/547559626024157184/629903553028161566/1227803125818069102
-    screen_set_charset(PET_CHARSET_UPPER_GRAPH);
-    videomode(VIDEOMODE_320x240);
-    bitmap_clear(COLOR_BLACK);
+    // screen_set_charset(PET_CHARSET_UPPER_GRAPH);
+    // videomode(VIDEOMODE_320x240);
+    //bitmap_clear(COLOR_BLACK);
 
-    vera_layer_enable(VERA_LAYER_ALL);
-    vera_sprites_enable(TRUE);
+    // vera_layer_enable(VERA_LAYER_ALL);
+    // vera_sprites_enable(TRUE);
 
-    sprite_set_addr(0, BPP_8, 0x13000);
-    sprite_move(0, 152, 112);
-    vpoke(FRONT,        VERA_SPRITE_ATTR_BASE+6); // coll mask, z-depth, v- and h-flip
-    vpoke(0b01010000,   VERA_SPRITE_ATTR_BASE+7); // height, width, palette offset
+    // sprite_set_addr(0, BPP_8, 0x13000);
+    // sprite_move(0, 152, 112);
+    // vpoke(FRONT,        VERA_SPRITE_ATTR_BASE+6); // coll mask, z-depth, v- and h-flip
+    // vpoke(0b01010000,   VERA_SPRITE_ATTR_BASE+7); // height, width, palette offset
 
-    sprite_print_attrs(0);
+    // sprite_print_attrs(0);
 
-    load_sprite("earth.bin", (char*)0x3000); // BEWARE: with alt chars, case is swapped!
+    // load_sprite("earth.bin", (char*)0x3000); // BEWARE: with alt chars, case is swapped!
 
-    screenshot();
+    // screenshot();
 }

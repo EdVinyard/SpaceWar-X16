@@ -1,15 +1,35 @@
 X16EMU := ../../x16emu.exe
-CL65 := cl65
+LINK := cl65
+COMPILE := cc65
+ASSEMBLE := ca65
 
-SRC_FILES := $(wildcard *.C)
-PRG_FILES := $(patsubst %.C,%.PRG,$(SRC_FILES))
+TARGET := EARTHSPIN.PRG
 
-COMPILER_OPTS := --target cx16 --register-vars --verbose
+ALL_OBJS = \
+	$(patsubst %.c,build/%.o,$(wildcard *.c)) \
+	$(patsubst %.s,build/%.o,$(wildcard *.s))
 
-all: $(PRG_FILES)
+OPTS := --target cx16 --verbose
+COMPILER_OPTS := $(OPTS) --register-vars
 
-%.PRG: %.C
-	$(CL65) $(COMPILER_OPTS) -o $@ -l $(patsubst %.C,%.list,$<) $<
-
-run: all
+run: $(TARGET)
 	$(X16EMU) -scale 2 -gif "earthspin.gif",wait -startin . -prg ./EARTHSPIN.PRG -run
+
+build: $(TARGET)
+
+clean:
+	rm build/*
+	rm $(TARGET)
+
+$(TARGET): $(ALL_OBJS)
+	$(LINK) $(OPTS) -o $@ -l $(subst %.PRG,%.list,$@) -m $(subst %.PRG,%.mmap,$@) $(ALL_OBJS)
+
+build/%.o: build/%.s
+	$(ASSEMBLE) $(OPTS) -o $@ $<
+
+build/%.o: %.s
+	$(ASSEMBLE) $(OPTS) -o $@ $<
+
+build/%.s: %.c
+	$(COMPILE) $(COMPILER_OPTS) -o $@ $<
+

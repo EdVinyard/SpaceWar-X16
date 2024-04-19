@@ -1,3 +1,7 @@
 BASLOAD*.PRG*
 *.list
 **/__pycache__
+**/*.mmap
+**/*.list
+**/build/*
+**/build/*
