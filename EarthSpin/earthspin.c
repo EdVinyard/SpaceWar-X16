@@ -271,21 +271,21 @@ void main() {
     // KLUDGE: cc65 always switches to the lower/upper character set.
     // Put it back!  See https://cc65.github.io/mailarchive/2004-09/4446.html
     // and https://discord.com/channels/547559626024157184/629903553028161566/1227803125818069102
-    // screen_set_charset(PET_CHARSET_UPPER_GRAPH);
-    // videomode(VIDEOMODE_320x240);
-    //bitmap_clear(COLOR_BLACK);
+    screen_set_charset(PET_CHARSET_UPPER_GRAPH);
+    videomode(VIDEOMODE_320x240);
+    bitmap_clear(COLOR_BLACK);
 
-    // vera_layer_enable(VERA_LAYER_ALL);
-    // vera_sprites_enable(TRUE);
+    vera_layer_enable(VERA_LAYER_ALL);
+    vera_sprites_enable(TRUE);
 
-    // sprite_set_addr(0, BPP_8, 0x13000);
-    // sprite_move(0, 152, 112);
-    // vpoke(FRONT,        VERA_SPRITE_ATTR_BASE+6); // coll mask, z-depth, v- and h-flip
-    // vpoke(0b01010000,   VERA_SPRITE_ATTR_BASE+7); // height, width, palette offset
+    sprite_set_addr(0, BPP_8, 0x13000);
+    sprite_move(0, 152, 112);
+    vpoke(FRONT,        VERA_SPRITE_ATTR_BASE+6); // coll mask, z-depth, v- and h-flip
+    vpoke(0b01010000,   VERA_SPRITE_ATTR_BASE+7); // height, width, palette offset
 
-    // sprite_print_attrs(0);
+    sprite_print_attrs(0);
 
-    // load_sprite("earth.bin", (char*)0x3000); // BEWARE: with alt chars, case is swapped!
+    load_sprite("earth.bin", (char*)0x3000); // BEWARE: with alt chars, case is swapped!
 
-    // screenshot();
+    screenshot();
 }

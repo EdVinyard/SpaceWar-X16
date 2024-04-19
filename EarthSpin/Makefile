@@ -22,7 +22,7 @@ clean:
 	rm $(TARGET)
 
 $(TARGET): $(ALL_OBJS)
-	$(LINK) $(OPTS) -o $@ -l $(subst %.PRG,%.list,$@) -m $(subst %.PRG,%.mmap,$@) $(ALL_OBJS)
+	$(LINK) $(OPTS) -o $@ -l $(subst .PRG,.list,$@) -m $(subst .PRG,.mmap,$@) $(ALL_OBJS)
 
 build/%.o: build/%.s
 	$(ASSEMBLE) $(OPTS) -o $@ $<
@@ -32,4 +32,3 @@ build/%.o: %.s
 
 build/%.s: %.c
 	$(COMPILE) $(COMPILER_OPTS) -o $@ $<
-
