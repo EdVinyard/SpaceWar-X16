@@ -74,9 +74,20 @@ PRNG_SEED_RETRY:                        // do {
     asm("beq %g", PRNG_SEED_RETRY);
 }
 
+/**
+ * the state used by the `prng_slow()` XOR-shift LFSR PRNG
+ */
 uint16 prng_slow_state = 0;
+
+/**
+ * Extract two bytes from the XOR-shift Linear-Feedback Shift Register
+ * pseudo-random number generator.
+ *
+ * This is a slow but easy-to-understand implementation.  It exists only to
+ * check the correctness much faster `prng()` implementation.
+ */
 uint16 __fastcall__ prng_slow() {
-    uint16 s = prng_slow_state;
+    uint16 s = prng_slow_state; // only to make the next three lines short
     s ^= s << 7;
     s ^= s >> 9;
     s ^= s << 8;
@@ -114,12 +125,23 @@ uint16 __fastcall__ prng() {
     asm("eor %b", prng_state_hi);
     asm("sta %b", prng_state_hi);   // x ^= x << 8 done
 
+    // return A,X;
     asm("tax");                     // X = "high" byte
     asm("lda %b", prng_state_lo);   // A = "low" byte
 }
 
+//===================================================================
+// UNIT TESTS
+//===================================================================
 char error_message[255];
 
+/** 
+ * Starting from the same state, confirm across 2^16 iterations the two
+ * implementations' output matches.
+ *
+ * This is redundant, but I'm leaving it in so there's more than one test in
+ * this "test suite".
+ */
 static char* test_many_iterations() {
     uint16 expected, actual, i;
 
@@ -134,7 +156,7 @@ static char* test_many_iterations() {
         if (expected != actual) {
             sprintf(
                 error_message, 
-                "test-many-iterations: i %d expected %04x; actual %04x", 
+                "test-many-iterations: i %d expected %04x actual %04x", 
                 i,
                 expected,
                 actual);
@@ -145,7 +167,11 @@ static char* test_many_iterations() {
     return NULL;
 }
 
-static char* test_various_seeds() {
+/** 
+ * Starting from the every possible state, confirm that the two implementations'
+ * output matches.
+ */
+static char* test_all_states() {
     uint16 expected, actual, i;
 
     i = 0;
@@ -159,7 +185,7 @@ static char* test_various_seeds() {
         if (expected != actual) {
             sprintf(
                 error_message, 
-                "test-various-seeds: i %d expected %04x; actual %04x", 
+                "test-various-seeds: i %d expected %04x actual %04x", 
                 i, 
                 expected, 
                 actual);
@@ -173,21 +199,11 @@ static char* test_various_seeds() {
 static char* all_tests() {
     puts("\n--- starting unit tests ---\n");
     mu_run_test(test_many_iterations);
-    mu_run_test(test_various_seeds);
+    mu_run_test(test_all_states);
     
     printf("\n--- success; all %d tests passed ---\n", tests_run);
     return NULL;
 }
-
-/**
- * CHROUT kernal routine (AKA, "BSOUT") that prints a single character at the
- * current cursor location and advances the cursor.
- *
- * See https://www.pagetable.com/c64ref/kernal/#BSOUT for detailed information
- * about the equivalent Commodore 64 KERNAL routine.
- */
-#define KERNAL_CHROUT (0xFFD2)
-#define CHROUT (asm("jsr %w", KERNAL_CHROUT))
 
 /**
  * Turn off the system immediately.
