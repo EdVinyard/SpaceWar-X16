@@ -24,6 +24,8 @@ typedef union {
 #define KERNAL_SETLFS (0xFFBA)
 /** https://www.pagetable.com/c64ref/kernal/#SETNAM */
 #define KERNAL_SETNAM (0xFFBD)
+/** https://www.pagetable.com/c64ref/kernal/#RDTIM */
+#define KERNAL_RDTIM (0xFFDE)
 
 #define VERA_LAYER_ALL (0b11)
 #define TRUE (1)
@@ -174,7 +176,7 @@ load_sprite_no_error:
     return 0;
 }
 
-void __fastcall__ putdxb(uint8 value, uint8 end) {
+void __fastcall__ putdxb(uint8 value) {
     char mask = 0b10000000;
 
     putchar('b');
@@ -186,7 +188,7 @@ void __fastcall__ putdxb(uint8 value, uint8 end) {
         }
     }
 
-    printf(" d%03d x%02x%c", value, value, end);
+    printf(" d%03d x%02x", value, value);
 }
 
 /**
@@ -200,7 +202,8 @@ void sprite_print_attrs(uint8 i) {
 
     for (j = 0; j < 8; j++) {
         printf("+%d  ", j);
-        putdxb(vpeek(addr + j), '\n');
+        putdxb(vpeek(addr + j));
+        putchar('\n');
     }
     putchar('\n');
 }
@@ -267,6 +270,128 @@ void __fastcall__ screenshot() {
     *((char*)0x9FB5) = 1;
 }
 
+/** pseudo-random number generator state (low byte) in zero-page */
+#define prng_state_lo (0x7e)
+
+/** pseudo-random number generator state (high byte) in zero-page */
+#define prng_state_hi (0x7f)
+
+/** pseudo-random number generator state in zero-page */
+#define prng_state ((uint16*)prng_state_lo)
+
+/**
+ * Seed the XOR-shift Linear-Feedback Shift Register pseudo-random number
+ * generator initial state from the two lower bytes of the system Jiffy clock.
+ * 
+ * from http://www.retroprogramming.com/2017/07/xorshift-pseudorandom-numbers-in-z80.html?showComment=1557753115362#c6700504611821379366
+ * which is a 6502 port of the Z80 code posted in 
+ * http://www.retroprogramming.com/2017/07/xorshift-pseudorandom-numbers-in-z80.html 
+ * originally devised by George Marsaglia
+ */
+void __fastcall__ prng_seed()
+{
+    // There's conflicting documentation for RDTIME for C64
+    // (https://www.pagetable.com/c64ref/kernal/#RDTIM).  However, on the X16, I
+    // believe the returned values are such that
+    //   - A contains the low-order byte, 
+    //   - X the middle-order byte, and 
+    //   - Y the high-order byte.
+PRNG_SEED_RETRY:                        // do {
+    // asm("jsr %w", KERNAL_RDTIM);        //    A,X,Y = KERNAL_RDTIME
+    asm("lda #1");
+    asm("ldx #2");
+    
+    asm("sta %b", prng_state_lo);       //    *prng_state_lo = A
+    asm("stx %b", prng_state_hi);       //    *prng_state_hi = X
+                                        //    // discard hi-order byte in Y
+    asm("ora %b", prng_state_hi);       // } while (0 == *prng_state);
+    asm("beq %g", PRNG_SEED_RETRY);
+}
+
+uint16 prng_slow_state = 0x0201;
+uint16 __fastcall__ prng_slow() {
+    uint16 s = prng_slow_state;
+    s ^= s << 7;
+    s ^= s >> 9;
+    s ^= s << 8;
+    return prng_slow_state = s;
+}
+
+/**
+ * Extract two bytes from the XOR-shift Linear-Feedback Shift Register
+ * pseudo-random number generator.
+ *
+ * from
+ * http://www.retroprogramming.com/2017/07/xorshift-pseudorandom-numbers-in-z80.html?showComment=1557753115362#c6700504611821379366
+ * which is a 6502 port of the Z80 code posted in
+ * http://www.retroprogramming.com/2017/07/xorshift-pseudorandom-numbers-in-z80.html
+ * which implements the algorithm originally devised by George Marsaglia
+ */
+uint16 __fastcall__ prng() {
+    // register uint16 result;
+    // uint16 s;
+    // s ^= s << 7;
+    // s ^= s >> 9;
+    // s ^= s << 8;
+    // return s;
+
+    asm("lda %b", prng_state_hi);
+    asm("lsr");
+    asm("lda %b", prng_state_lo);
+    asm("ror");
+    asm("eor %b", prng_state_hi);
+    asm("sta %b", prng_state_hi);   // high byte of x ^= x << 7 done
+    asm("ror");                     // A has now x >> 9 and high bit comes from low byte
+    asm("eor %b", prng_state_lo);
+    asm("sta %b", prng_state_lo);   // x ^= x >> 9 and the low part of x ^= x << 7 done
+    asm("eor %b", prng_state_hi);
+    asm("sta %b", prng_state_hi);   // x ^= x << 8 done
+
+    asm("tax");                     // X = "high" byte
+    asm("lda %b", prng_state_lo);   // A = "low" byte
+}
+
+void rdtim_test() {
+    uint16 i = 0;
+
+    while (1) {
+        asm("jsr %w", KERNAL_RDTIM);
+        asm("phy");
+        asm("phx");
+
+        asm("jsr %v", putdxb);  // print A
+        asm("lda #141"); CHROUT;// newline
+
+        asm("pla");             // print X
+        asm("jsr %v", putdxb);
+        asm("lda #141"); CHROUT;// newline
+
+        asm("pla");             // print Y
+        asm("jsr %v", putdxb); 
+        asm("lda #141"); CHROUT;// newline
+
+        asm("lda #141"); CHROUT;// newline
+        while (++i) {}          // wait a bit
+    }
+}
+
+void prng_test() {
+    uint8 i;
+    prng_seed();
+    printf("expect actual\n");
+    printf("%04x   %04x\n", prng_slow_state, *prng_state);
+
+    for (i = 0; i < 20; i++) {
+        printf("%04x   %04x\n", prng_slow(), prng());
+        // asm("phx");
+        // asm("jsr %v", putdxb);
+        // asm("lda #141"); CHROUT;
+        // asm("plx");
+        // asm("jsr %v", putdxb);
+        // asm("lda #141"); CHROUT; CHROUT;   
+    }
+}
+
 void main() {
     // KLUDGE: cc65 always switches to the lower/upper character set.
     // Put it back!  See https://cc65.github.io/mailarchive/2004-09/4446.html
@@ -282,10 +407,12 @@ void main() {
     sprite_move(0, 152, 112);
     vpoke(FRONT,        VERA_SPRITE_ATTR_BASE+6); // coll mask, z-depth, v- and h-flip
     vpoke(0b01010000,   VERA_SPRITE_ATTR_BASE+7); // height, width, palette offset
-
-    sprite_print_attrs(0);
-
+    // sprite_print_attrs(0);
     load_sprite("earth.bin", (char*)0x3000); // BEWARE: with alt chars, case is swapped!
 
+    // rdtim_test();
+    prng_test();
+
+    // prng();
     screenshot();
 }
