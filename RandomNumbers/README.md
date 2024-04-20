@@ -28,6 +28,8 @@ output
 
 PASS
 PASS
+PASS
+PASS
 
 --- SUCCESS; ALL 2 TESTS PASSED ---
 SMC Power Off.

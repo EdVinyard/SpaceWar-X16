@@ -41,10 +41,11 @@
 /**
  * Seed the XOR-shift Linear-Feedback Shift Register pseudo-random number
  * generator initial state from the supplied value.
+ * 
+ * @param seed a NON-ZERO seed value
  */
-void __fastcall__ prng_seed(const register uint16 seed) {
-    asm("lda <%v", seed);
-    asm("ldx >%v", seed);
+void __fastcall__ prng_seed(const uint16 seed) {
+    *prng_state = seed;
 }
 
 /**
@@ -128,6 +129,7 @@ uint16 __fastcall__ prng() {
     // return A,X;
     asm("tax");                     // X = "high" byte
     asm("lda %b", prng_state_lo);   // A = "low" byte
+    // compiler warning here because we don't `return`
 }
 
 //===================================================================
@@ -196,8 +198,39 @@ static char* test_all_states() {
     return NULL;
 }
 
+/** 
+ * Seeding from the clock must never produce a state of zero.
+ */
+static char* test_prng_seed_clock() {
+    uint8 i;
+
+    for (i = 0; i < 100; i++) {
+        prng_seed_clock();
+        mu_assert("test-prng-seed-clock: prng state was zero", *prng_state != 0);
+    }
+
+    return NULL;    
+}
+
+/** 
+ * correctly set the internal PRNG state
+ */
+static char* test_prng_seed() {
+    uint16 seed;
+
+    for (seed = 200; seed < 300; seed++) {
+        prng_seed(seed);
+        sprintf(error_message, "test-prng-seed: expected %04x actual %04x", seed, *prng_state);
+        mu_assert(error_message, *prng_state == seed);
+    }
+
+    return NULL;    
+}
+
 static char* all_tests() {
     puts("\n--- starting unit tests ---\n");
+    mu_run_test(test_prng_seed);
+    mu_run_test(test_prng_seed_clock);
     mu_run_test(test_many_iterations);
     mu_run_test(test_all_states);
     
