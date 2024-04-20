@@ -138,38 +138,6 @@ uint16 __fastcall__ prng() {
 char error_message[255];
 
 /** 
- * Starting from the same state, confirm across 2^16 iterations the two
- * implementations' output matches.
- *
- * This is redundant, but I'm leaving it in so there's more than one test in
- * this "test suite".
- */
-static char* test_many_iterations() {
-    uint16 expected, actual, i;
-
-    prng_seed(1);                    // same seed for both PRNGs
-    prng_slow_state = *prng_state;
-
-    i = 0;
-    do {
-        expected = prng_slow();
-        actual = prng();
-
-        if (expected != actual) {
-            sprintf(
-                error_message, 
-                "test-many-iterations: i %d expected %04x actual %04x", 
-                i,
-                expected,
-                actual);
-            mu_fail(error_message);
-        }
-    } while (++i);
-
-    return NULL;
-}
-
-/** 
  * Starting from the every possible state, confirm that the two implementations'
  * output matches.
  */
@@ -231,7 +199,6 @@ static char* all_tests() {
     puts("\n--- starting unit tests ---\n");
     mu_run_test(test_prng_seed);
     mu_run_test(test_prng_seed_clock);
-    mu_run_test(test_many_iterations);
     mu_run_test(test_all_states);
     
     printf("\n--- success; all %d tests passed ---\n", tests_run);
