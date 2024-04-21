@@ -2,6 +2,8 @@
 #include <cx16.h>
 #include <stdio.h>
 
+#include "xsrng.h"
+
 #define uint8 unsigned char
 #define uint16 unsigned short
 #define uint32 unsigned long
@@ -20,8 +22,8 @@
                                 } \
                                 puts("pass"); \
                             } while (0)
- uint16 tests_run;
- uint16 tests_failed;
+ uint16 tests_run = 0;
+ uint16 tests_failed = 0;
 
 /** https://www.pagetable.com/c64ref/kernal/#RDTIM */
 #define KERNAL_RDTIM (0xFFDE)
@@ -29,51 +31,8 @@
 /** https://github.com/X16Community/x16-docs/blob/master/X16%20Reference%20-%2005%20-%20KERNAL.md#function-name-i2c_write_byte */
 #define KERNAL_I2C_WRITE_BYTE (0xFEC9)
 
-/** pseudo-random number generator state (low byte) in zero-page */
-#define prng_state_lo (0x7e)
-
-/** pseudo-random number generator state (high byte) in zero-page */
-#define prng_state_hi (0x7f)
-
 /** pseudo-random number generator state in zero-page */
-#define prng_state ((uint16*)prng_state_lo)
-
-/**
- * Seed the XOR-shift Linear-Feedback Shift Register pseudo-random number
- * generator initial state from the supplied value.
- * 
- * @param seed a NON-ZERO seed value
- */
-void __fastcall__ prng_seed(const uint16 seed) {
-    *prng_state = seed;
-}
-
-/**
- * Seed the XOR-shift Linear-Feedback Shift Register pseudo-random number
- * generator initial state from the two lower bytes of the system Jiffy clock.
- * 
- * from http://www.retroprogramming.com/2017/07/xorshift-pseudorandom-numbers-in-z80.html?showComment=1557753115362#c6700504611821379366
- * which is a 6502 port of the Z80 code posted in 
- * http://www.retroprogramming.com/2017/07/xorshift-pseudorandom-numbers-in-z80.html 
- * originally devised by George Marsaglia
- */
-void __fastcall__ prng_seed_clock()
-{
-    // There's conflicting documentation for RDTIME for C64
-    // (https://www.pagetable.com/c64ref/kernal/#RDTIM).  However, on the X16, I
-    // believe the returned values are such that
-    //   - A contains the low-order byte, 
-    //   - X the middle-order byte, and 
-    //   - Y the high-order byte.
-PRNG_SEED_RETRY:                        // do {
-    asm("jsr %w", KERNAL_RDTIM);        //    A,X,Y = KERNAL_RDTIME
-    
-    asm("sta %b", prng_state_lo);       //    *prng_state_lo = A
-    asm("stx %b", prng_state_hi);       //    *prng_state_hi = X
-                                        //    // discard hi-order byte in Y
-    asm("ora %b", prng_state_hi);       // } while (0 == *prng_state);
-    asm("beq %g", PRNG_SEED_RETRY);
-}
+#define prng_state ((uint16*)0x7e)
 
 /**
  * the state used by the `prng_slow()` XOR-shift LFSR PRNG
@@ -93,43 +52,6 @@ uint16 __fastcall__ prng_slow() {
     s ^= s >> 9;
     s ^= s << 8;
     return prng_slow_state = s;
-}
-
-/**
- * Extract two bytes from the XOR-shift Linear-Feedback Shift Register
- * pseudo-random number generator.
- *
- * from
- * http://www.retroprogramming.com/2017/07/xorshift-pseudorandom-numbers-in-z80.html?showComment=1557753115362#c6700504611821379366
- * which is a 6502 port of the Z80 code posted in
- * http://www.retroprogramming.com/2017/07/xorshift-pseudorandom-numbers-in-z80.html
- * which implements the algorithm originally devised by George Marsaglia
- */
-uint16 __fastcall__ prng() {
-    // register uint16 result;
-    // uint16 s;
-    // s ^= s << 7;
-    // s ^= s >> 9;
-    // s ^= s << 8;
-    // return s;
-
-    asm("lda %b", prng_state_hi);
-    asm("lsr");
-    asm("lda %b", prng_state_lo);
-    asm("ror");
-    asm("eor %b", prng_state_hi);
-    // asm("lda #1"); // INTENTIONAL BUG FOR TESTING THE UNIT TESTS
-    asm("sta %b", prng_state_hi);   // high byte of x ^= x << 7 done
-    asm("ror");                     // A has now x >> 9 and high bit comes from low byte
-    asm("eor %b", prng_state_lo);
-    asm("sta %b", prng_state_lo);   // x ^= x >> 9 and the low part of x ^= x << 7 done
-    asm("eor %b", prng_state_hi);
-    asm("sta %b", prng_state_hi);   // x ^= x << 8 done
-
-    // return A,X;
-    asm("tax");                     // X = "high" byte
-    asm("lda %b", prng_state_lo);   // A = "low" byte
-    // compiler warning here because we don't `return`
 }
 
 //===================================================================
