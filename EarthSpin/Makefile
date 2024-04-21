@@ -8,14 +8,14 @@ TARGET := EARTHSPIN.PRG
 ALL_OBJS = \
 	$(patsubst %.c,build/%.o,$(wildcard *.c)) \
 	$(patsubst %.s,build/%.o,$(wildcard *.s))
-
+	
 OPTS := --target cx16 --verbose
 COMPILER_OPTS := $(OPTS) --register-vars
 
-run: $(TARGET)
-	$(X16EMU) -scale 2 -gif "earthspin.gif",wait -startin . -prg ./EARTHSPIN.PRG -run
-
 build: $(TARGET)
+
+run: $(TARGET)
+	$(X16EMU) -scale 2 -gif "earthspin.gif",wait -startin . -prg ./EARTHSPIN.PRG -run -echo
 
 clean:
 	rm build/*

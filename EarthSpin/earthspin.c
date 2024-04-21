@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "bitmap_clear.h"
+#include "xsrng.h"
 
 #define uint8 unsigned char
 #define uint16 unsigned short
@@ -26,6 +27,10 @@ typedef union {
 #define KERNAL_SETNAM (0xFFBD)
 /** https://www.pagetable.com/c64ref/kernal/#RDTIM */
 #define KERNAL_RDTIM (0xFFDE)
+/** https://www.pagetable.com/c64ref/kernal/#CHROUT */
+#define KERNAL_CHROUT (0xFFD2)
+#define CHROUT (asm("jsr %w", KERNAL_CHROUT))
+#define NEWLINE asm("lda #13"); CHROUT
 
 #define VERA_LAYER_ALL (0b11)
 #define TRUE (1)
@@ -89,16 +94,6 @@ struct VeraSpriteAttr {
      */
     uint8 height_width_palette_offset;
 };
-
-/**
- * CHROUT kernal routine (AKA, "BSOUT") that prints a single character at the
- * current cursor location and advances the cursor.
- *
- * See https://www.pagetable.com/c64ref/kernal/#BSOUT for detailed information
- * about the equivalent Commodore 64 KERNAL routine.
- */
-#define KERNAL_CHROUT (0xFFD2)
-#define CHROUT (asm("jsr %w", KERNAL_CHROUT))
 
 /**
  * Load the raw bytes of the specified file into video RAM. Indended to be very
@@ -270,87 +265,6 @@ void __fastcall__ screenshot() {
     *((char*)0x9FB5) = 1;
 }
 
-/** pseudo-random number generator state (low byte) in zero-page */
-#define prng_state_lo (0x7e)
-
-/** pseudo-random number generator state (high byte) in zero-page */
-#define prng_state_hi (0x7f)
-
-/** pseudo-random number generator state in zero-page */
-#define prng_state ((uint16*)prng_state_lo)
-
-/**
- * Seed the XOR-shift Linear-Feedback Shift Register pseudo-random number
- * generator initial state from the two lower bytes of the system Jiffy clock.
- * 
- * from http://www.retroprogramming.com/2017/07/xorshift-pseudorandom-numbers-in-z80.html?showComment=1557753115362#c6700504611821379366
- * which is a 6502 port of the Z80 code posted in 
- * http://www.retroprogramming.com/2017/07/xorshift-pseudorandom-numbers-in-z80.html 
- * originally devised by George Marsaglia
- */
-void __fastcall__ prng_seed()
-{
-    // There's conflicting documentation for RDTIME for C64
-    // (https://www.pagetable.com/c64ref/kernal/#RDTIM).  However, on the X16, I
-    // believe the returned values are such that
-    //   - A contains the low-order byte, 
-    //   - X the middle-order byte, and 
-    //   - Y the high-order byte.
-PRNG_SEED_RETRY:                        // do {
-    // asm("jsr %w", KERNAL_RDTIM);        //    A,X,Y = KERNAL_RDTIME
-    asm("lda #1");
-    asm("ldx #2");
-    
-    asm("sta %b", prng_state_lo);       //    *prng_state_lo = A
-    asm("stx %b", prng_state_hi);       //    *prng_state_hi = X
-                                        //    // discard hi-order byte in Y
-    asm("ora %b", prng_state_hi);       // } while (0 == *prng_state);
-    asm("beq %g", PRNG_SEED_RETRY);
-}
-
-uint16 prng_slow_state = 0x0201;
-uint16 __fastcall__ prng_slow() {
-    uint16 s = prng_slow_state;
-    s ^= s << 7;
-    s ^= s >> 9;
-    s ^= s << 8;
-    return prng_slow_state = s;
-}
-
-/**
- * Extract two bytes from the XOR-shift Linear-Feedback Shift Register
- * pseudo-random number generator.
- *
- * from
- * http://www.retroprogramming.com/2017/07/xorshift-pseudorandom-numbers-in-z80.html?showComment=1557753115362#c6700504611821379366
- * which is a 6502 port of the Z80 code posted in
- * http://www.retroprogramming.com/2017/07/xorshift-pseudorandom-numbers-in-z80.html
- * which implements the algorithm originally devised by George Marsaglia
- */
-uint16 __fastcall__ prng() {
-    // register uint16 result;
-    // uint16 s;
-    // s ^= s << 7;
-    // s ^= s >> 9;
-    // s ^= s << 8;
-    // return s;
-
-    asm("lda %b", prng_state_hi);
-    asm("lsr");
-    asm("lda %b", prng_state_lo);
-    asm("ror");
-    asm("eor %b", prng_state_hi);
-    asm("sta %b", prng_state_hi);   // high byte of x ^= x << 7 done
-    asm("ror");                     // A has now x >> 9 and high bit comes from low byte
-    asm("eor %b", prng_state_lo);
-    asm("sta %b", prng_state_lo);   // x ^= x >> 9 and the low part of x ^= x << 7 done
-    asm("eor %b", prng_state_hi);
-    asm("sta %b", prng_state_hi);   // x ^= x << 8 done
-
-    asm("tax");                     // X = "high" byte
-    asm("lda %b", prng_state_lo);   // A = "low" byte
-}
-
 void rdtim_test() {
     uint16 i = 0;
 
@@ -375,21 +289,38 @@ void rdtim_test() {
     }
 }
 
-void prng_test() {
-    uint8 i;
-    prng_seed();
-    printf("expect actual\n");
-    printf("%04x   %04x\n", prng_slow_state, *prng_state);
+void draw_stars_naive() {
+    uint8 i, c, y;
+    uint16 random, x;
+    uint32 addr;
 
-    for (i = 0; i < 20; i++) {
-        printf("%04x   %04x\n", prng_slow(), prng());
-        // asm("phx");
-        // asm("jsr %v", putdxb);
-        // asm("lda #141"); CHROUT;
-        // asm("plx");
-        // asm("jsr %v", putdxb);
-        // asm("lda #141"); CHROUT; CHROUT;   
+    vpoke(4, 319);
+    vpoke(4, 0x12bff);
+    
+    for (i = 0; i < 100; i++) {
+        do { x = prng(); } while (x > 319);
+        do { y = prng(); } while (y > 239);
+        addr = 320*(uint32)y + (uint32)x;
+        c = 16 + (prng() & 0b1111); // a greyscale color, index 16-31
+        vpoke(c, addr);
     }
+}
+
+void draw_stars_by_interval() {
+    uint32 addr = 0; // VRAM address (offset into bitmap memory $00000-$12bff)
+    uint16 random;
+    uint8 color;
+    uint16 star_count = 0;
+
+    while (addr < 0x12c00) {
+        random = prng();
+        color = 16 + (random >> 12); // top 4 bits are color
+        addr += random & 0x3ff;      // bottom 10 bits are interval
+        vpoke(color, addr);
+        star_count++;
+    }
+
+    putdxb(star_count);
 }
 
 void main() {
@@ -405,14 +336,13 @@ void main() {
 
     sprite_set_addr(0, BPP_8, 0x13000);
     sprite_move(0, 152, 112);
-    vpoke(FRONT,        VERA_SPRITE_ATTR_BASE+6); // coll mask, z-depth, v- and h-flip
-    vpoke(0b01010000,   VERA_SPRITE_ATTR_BASE+7); // height, width, palette offset
+    vpoke(FRONT,      VERA_SPRITE_ATTR_BASE+6); // coll. mask, z-depth, v- and h-flip
+    vpoke(0b01010000, VERA_SPRITE_ATTR_BASE+7); // height, width, palette offset
     // sprite_print_attrs(0);
-    load_sprite("earth.bin", (char*)0x3000); // BEWARE: with alt chars, case is swapped!
+    load_sprite("earth.bin", (char*)0x3000); // lower-case in source => upper-case on X16
 
-    // rdtim_test();
-    prng_test();
+    prng_seed(1);
+    draw_stars_by_interval();
 
-    // prng();
     screenshot();
 }
