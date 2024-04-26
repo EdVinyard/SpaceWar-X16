@@ -16,7 +16,7 @@ state_hi = $7f      ; state (high byte) in zero-page
 KERNAL_RDTIM = $ffde
 
 ;--------------------------------------------------------------------
-_prng_seed:
+.proc _prng_seed
 ; uses cc65 'fastcall' protocol
 ; input A-register low byte of 16-bit seed value
 ; input X-register high byte of 16-bit seed value
@@ -32,9 +32,10 @@ _prng_seed:
 @nonzero_seed_value:
 
     rts
+.endproc ; _prng_seed
 
 ;--------------------------------------------------------------------
-_prng_seed_clock:
+.proc _prng_seed_clock
 ; no input
 ; no output
 ;--------------------------------------------------------------------
@@ -52,9 +53,10 @@ _prng_seed_clock:
     ora state_hi       ; } while (0 == state);
     beq @zero_seed_value
     rts
+.endproc ; _prng_seed_clock
 
 ;--------------------------------------------------------------------
-_prng:
+.proc _prng
 ; uses cc65 'fastcall' protocol
 ; no input
 ; output A random byte
@@ -83,3 +85,4 @@ _prng:
     tax             ; X = "high" byte
     lda state_lo    ; A = "low" byte
     rts
+.endproc ; _prng

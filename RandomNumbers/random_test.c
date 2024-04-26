@@ -8,6 +8,8 @@
 #define uint16 unsigned short
 #define uint32 unsigned long
 
+#define UINT16_MAX (65535)
+
  /* (M)inimal (U)nit testing adapted from https://jera.com/techinfo/jtns/jtn002 */
  #define mu_fail(message) do { return message; } while (0)
  #define mu_assert(message, test) do { if (!(test)) return message; } while (0)
@@ -77,7 +79,7 @@ static char* test_all_states() {
         if (expected != actual) {
             sprintf(
                 error_message, 
-                "test-various-seeds: i %d expected %04x actual %04x", 
+                "test-various-seeds: i %u expected %04x actual %04x", 
                 i, 
                 expected, 
                 actual);
@@ -117,13 +119,31 @@ static char* test_prng_seed() {
     return NULL;    
 }
 
+static char* test_prng_period() {
+    uint16 first_output, random, period;
+
+    prng_seed(1);
+    first_output = prng();
+    period = 0;
+    while (random != first_output) {
+        random = prng();
+        period++;
+    }
+
+    if (UINT16_MAX != period) {
+        sprintf(error_message, "unexpected period; expected %u actual %u", UINT16_MAX, period);
+        mu_fail(error_message);
+    }
+}
+
 static char* all_tests() {
     puts("\n--- starting unit tests ---\n");
     mu_run_test(test_prng_seed);
     mu_run_test(test_prng_seed_clock);
     mu_run_test(test_all_states);
+    mu_run_test(test_prng_period);
     
-    printf("\n--- success; all %d tests passed ---\n", tests_run);
+    printf("\n--- success; all %u tests passed ---\n", tests_run);
     return NULL;
 }
 
