@@ -3,14 +3,17 @@
         {
             "name": "CommanderX16",
             "includePath": [
+                "/usr/share/cc65/include/**",
                 "/Users/ed/Desktop/x16/cc65/include/**"
             ],
             "defines": [
                 "_DEBUG",
                 "UNICODE",
                 "_UNICODE"
-            ]
+            ],
+            "compilerPath": "/usr/bin/cc65"
         }
     ],
     "version": 4
 }
+

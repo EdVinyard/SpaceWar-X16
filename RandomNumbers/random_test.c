@@ -8,7 +8,7 @@
 #define uint16 unsigned short
 #define uint32 unsigned long
 
-#define UINT16_MAX (65535)
+#define UINT16_MAX (65535UL)
 
  /* (M)inimal (U)nit testing adapted from https://jera.com/techinfo/jtns/jtn002 */
  #define mu_fail(message) do { return message; } while (0)

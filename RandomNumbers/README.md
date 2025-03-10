@@ -18,7 +18,7 @@ LLC](https://jera.com/jbrewer).
 
 ## Testing
 
-Running `make test` will compile, assembly, and link a `.PRG` file for the
+Running `build.sh` will compile, assembly, and link a `.PRG` file for the
 Commander X16, then start the emulator, run the tests, echo all output to your
 console, and shut down the emulator.  If all went well, you'll see the following
 output
