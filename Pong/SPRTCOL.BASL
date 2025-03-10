@@ -1,0 +1,75 @@
+INIT:
+    REM CREATE SPRITE BITMAP ----------
+
+    FOR I = 0 TO (8*64/2)               :REM 8 * 64 * 4-BITS = 128 BYTES
+        REM   BANK ADDR       VALUE
+        VPOKE 1,   $3000 + I, $11       :REM SET UPPER, LOWER NIBBLE TO 1
+        NEXT
+
+    REM MOVING SPRITE -----------------
+
+    REM    IDX PRI PAL FLP WID HGT      :REM WIDTH/HEIGHT 0=8,1=16,2=32,3=64
+    SPRITE 1,  3,  8,  0,  0,  3
+
+    REM    IDX BNK ADDR   COLOR         :REM COLOR DEPTH 0=4BIT,1=8BIT
+    SPRMEM 1,  1,  $3000, 0
+
+    REM    IDX X    Y
+    MOVSPR 1,  320, 180
+
+    I=1:M=%0111:GOSUB SPRITEMASK
+
+    REM STATIONARY SPRITE -------------
+
+    REM    IDX PRI PAL FLP WID HGT      :REM WIDTH/HEIGHT 0=8,1=16,2=32,3=64
+    SPRITE 2,  3,  15, 0,  0,  3
+
+    REM    IDX BNK ADDR   COLOR         :REM COLOR DEPTH 0=4BIT,1=8BIT
+    SPRMEM 2,  1,  $3000, 0
+
+    REM    IDX X    Y
+    MOVSPR 2,  340, 210
+
+    I=2:M=%1110:GOSUB SPRITEMASK
+
+    REM MAIN LOOP --------------------
+
+    I = 0
+MAINLOOP:
+    IF I = 3 THEN POKE $9FB5,2          :REM START RECORDING GIF IN EMULATOR
+
+    FOR X = 320 TO 360
+        MOVSPR 1, X, 180                :REM MOVE THE FIRST SPRITE SO THAT...
+                                        :REM IT OVERLAPS THE 2ND SOMETIMES.
+
+        R = PEEK($9F27)                 :REM COLLISIONS IN HIGH NIBBLE...
+        PRINT MID$(BIN$(R),1,4),        :REM OF VERA "ISR" REG
+
+        C = (R AND %11110000) / 16      :REM SHIFT COLLISIONS TO LOW NIBBLE
+        IF C/16 =  0 THEN PRINT
+        IF C/16 <> 0 THEN PRINT "COLLISION"
+
+        NEXT X
+
+    I = I + 1
+    IF I < 6 THEN GOTO MAINLOOP
+    POKE $9FB5,0                        :REM STOP RECORDING GIF IN EMULATOR
+
+    END:REM ===========================
+
+
+    REM -------------------------------
+    REM
+    REM SET THE COLLISION MASK OF A SPRITE
+    REM
+    REM IN I - SPRITE INDEX (0-127)
+    REM IN M - MASK (%0000 - %1111)
+    REM 
+SPRITEMASK:
+    ZA = $FC06 + (8*I)                  :REM BANK 1 ATTR BYTE (A)DDRESS
+    ZR = VPEEK(1, ZA)                   :REM ATTRIBUTES (R)EAD
+    ZW = (ZR AND %1111) OR (M*16)       :REM SUBSTITUTE M FOR HIGH NIBBLE OF ZR
+    VPOKE 1, ZA, ZW
+    REM ZC = VPEEK(1, ZA)               :REM (C)ONFIRM THE ATTRIBUTES
+    REM PRINT "SPRITE";I;"COLLISION MASK ";BIN$(ZR);" => ";BIN$(ZC)
+    RETURN

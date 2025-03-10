@@ -1,0 +1,48 @@
+START:
+    INPUT "SPRITE INDEX (0-15, -1 QUITS):"; S
+    IF S < 0 THEN GOTO QUIT
+
+    PRINT "                    ";
+    PRINT "BIT   7   6   5   4   3   2   1   0"
+
+    A = $FC00 + (8*S)                   :REM ADDRESS; ATTRS START AT $FC00
+    B = VPEEK(1, A)
+    GOSUB PRINTBYTE
+    PRINT "           ADDRESS BITS 12 - 5"
+
+    A=A+1:B=VPEEK(1,A):GOSUB PRINTBYTE
+    PRINT "    MODEÈ -   -   - È ADDR 16 - 13"
+
+    A=A+1:B=VPEEK(1,A):GOSUB PRINTBYTE
+    PRINT "             X BITS 7 - 0"
+
+    A=A+1:B=VPEEK(1,A):GOSUB PRINTBYTE
+    PRINT "      -   -   -   -   -  ÈX BITS 9-8"
+
+    A=A+1:B=VPEEK(1,A):GOSUB PRINTBYTE
+    PRINT "             Y BITS 7 - 0"
+
+    A=A+1:B=VPEEK(1,A):GOSUB PRINTBYTE
+    PRINT "      -   -   -   -   -  ÈY BITS 9-8"
+
+    A=A+1:B=VPEEK(1,A):GOSUB PRINTBYTE
+    PRINT "      COLLISION MASKÈZ DEPTHÈVFLÈHFL"
+
+    A=A+1:B=VPEEK(1,A):GOSUB PRINTBYTE
+    PRINT "      HEIGHT ÈWIDTH ÈPALETTEÈOFFSET"
+    
+    PRINT    
+    GOTO START
+QUIT:
+    END
+
+    REM -------------------------------------
+    REM
+    REM PRINT AN ADDRESS AND ITS BYTE VALUE
+    REM
+    REM IN A - ADDRESS
+    REM IN B - BYTE VALUE
+    REM
+PRINTBYTE:
+    PRINT HEX$(A);":";BIN$(B);" ";HEX$(B),
+    RETURN

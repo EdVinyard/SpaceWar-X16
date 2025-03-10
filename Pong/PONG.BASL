@@ -1,0 +1,173 @@
+INIT:
+    REM CREATE SPRITE BITMAP ----------
+
+    FOR I = 0 TO (8*64/2)               :REM 8 * 64 * 4-BITS = 128 BYTES
+        REM   BANK ADDR       VALUE
+        VPOKE 1,   $3000 + I, $11       :REM SET UPPER, LOWER NIBBLE TO 1
+        NEXT
+
+    REM LEFT PLAYER PADDLE ------------
+
+    LX = 2                              :REM CONST PADDLE LEFT EDGE X-POSITION
+    LY = 208                            :REM PADDLE TOP EDGE Y-POSITION
+    LI = 1: IF JOY(LI)=-1 THEN LI=0     :REM (I)INPUT CHANNEL
+    LJ = 0                              :REM (J)OYSTICK/KEYBOARD STATE
+    LS = 0                              :REM (S)CORE
+
+    REM    IDX PRI PAL FLP WID HGT      :REM WIDTH/HEIGHT 0=8,1=16,2=32,3=64
+    SPRITE 1,  3,  8,  0,  0,  3
+
+    REM    IDX BNK ADDR   COLOR         :REM COLOR DEPTH 0=4BIT,1=8BIT
+    SPRMEM 1,  1,  $3000, 0
+
+    REM    IDX X    Y
+    MOVSPR 1,  LX,  LY
+
+    I=1:M=%0001:GOSUB SPRITEMASK
+
+    REM RIGHT PLAYER PADDLE -----------
+
+    RX = 630                            :REM CONST PADDLE LEFT EDGE X-POSITION
+    RY = 208                            :REM PADDLE TOP EDGE Y-POSITION
+    RI = 2: IF JOY(RI)=-1 THEN RI=0     :REM (I)NPUT CHANNEL
+    RJ = 0                              :REM (J)OYSTICK STATE
+    RS = 0                              :REM (S)CORE
+
+    REM    IDX PRI PAL FLP WID HGT      :REM WIDTH/HEIGHT 0=8,1=16,2=32,3=64
+    SPRITE 2,  3,  15, 0,  0,  3
+
+    REM    IDX BNK ADDR   COLOR         :REM COLOR DEPTH 0=4BIT,1=8BIT
+    SPRMEM 2,  1,  $3000, 0
+
+    REM    IDX X    Y
+    MOVSPR 2,  RX,  RY
+
+    I=2:M=%0010:GOSUB SPRITEMASK
+
+    REM BALL --------------------------
+
+    REM BALL VALUES INITIALIZED ON SERVE
+    BX = -1                             :REM BALL LEFT EDGE X-POSITION
+    BY = -1                             :REM BALL TOP EDGE Y-POSITION
+    BH = -1                             :REM BALL (H)ORIZONTAL VELOCITY
+    BV = -1                             :REM BALL (V)ERTICAL   VELOCITY
+
+    REM    IDX PRI PAL FLP WID HGT      :REM WIDTH/HEIGHT 0=8,1=16,2=32,3=64
+    SPRITE 3,  3,  0,  0,  0,  0
+
+    REM    IDX BNK ADDR   COLOR         :REM COLOR DEPTH 0=4BIT,1=8BIT
+    SPRMEM 3,  1,  $3000, 0
+
+    REM    IDX X    Y
+    MOVSPR 3,  BX,  BY
+
+    I=3:M=%0011:GOSUB SPRITEMASK        :REM 1 BIT IN COMMON WITH EACH PLAYER
+
+    REM MAIN LOOP --------------------
+    CLS
+    GOSUB SERVE
+
+MAINLOOP:
+    ZT = TIME                           :REM FOR LOOP TIMING
+
+    LJ = JOY(LI)                        :REM LEFT PLAYER
+    IF LJ AND $008 THEN LY = LY - 1     :REM LEFT PLAYER PRESSED UP
+    IF LJ AND $004 THEN LY = LY + 1     :REM LEFT PLAYER PRESSED DOWN
+    IF LY < 0 THEN LY = 0               :REM STOP AT TOP OF SCREEN
+    IF LY > 415 THEN LY = 415           :REM STOP AT BOTTOM OF SCREEN
+
+    RJ = JOY(RI)                        :REM RIGHT PLAYER
+    IF RJ AND $008 THEN RY = RY - 1     :REM RIGHT PLAYER PRESSED UP
+    IF RJ AND $004 THEN RY = RY + 1     :REM RIGHT PLAYER PRESSED DOWN
+    IF RY < 0 THEN RY = 0               :REM STOP AT TOP OF SCREEN
+    IF RY > 415 THEN RY = 415           :REM STOP AT BOTTOM OF SCREEN
+
+    BX = BX + BH                        :REM BALL POSITION UPDATE
+    BY = BY + BV
+
+    MOVSPR 1, LX, LY                    :REM MOVE ALL THE SPRITES
+    MOVSPR 2, RX, RY
+    MOVSPR 3, BX, BY
+
+    REM COLLIDING SPRITE MASKS ARE AND-ED TOGETHER INTO VERA "ISR" REGISTER
+    REM FOR EXAMPLE, IF THE BALL COLLIDES WITH THE LEFT PADDLE, THE HIGH
+    REM NIBBLE OF ISR WILL BE %0001.  IF IT WAS THE RIGHT PADDLE, %0010.
+    REM IN BASIC, THE INTERRUPT CANNOT INFORM US OF A COLLISION, SO WE
+    REM HAVE TO LOOP AND CHECK INSTEAD.  THERE IS SOME LAG IN THE ISR AFTER
+    REM A COLLISION, SO WE WAIT A LITTLE WHILE AFTER A COLLISION BEFORE WE
+    REM CHECK AGAIN (I.E., DEBOUNCE) TO PREVENT THE BALL FROM GETTING 
+    REM "STUCK" IN A PADDLE.
+
+    C = PEEK($9F27)                     :REM COLLISIONS IN HIGH NIBBLE...
+    REM PRINT BIN$(C)                   :REM OF VERA "ISR" REG
+    
+    IF NC>0 THEN NC=NC-1:GOTO NOCOLLIDE :REM DEBOUNCE COLLISION CHECK                                            
+    IF (C AND %11110000) = 0 THEN NOCOLLIDE
+        NC = 15                         :REM SKIP COLLISION CHECK FOR A WHILE
+        BH = -BH                        :REM "BOUNCE" ON PADDLE COLLISION
+        NOCOLLIDE:
+
+    IF BY <= 0 OR 472 <= BY THEN BV=-BV :REM BOUNCE AT TOP, BOTTOM OF SCREEN
+    IF BX <= 0 OR 632 <= BX THEN GOSUB SCORE
+
+    LOCATE 60,39                        :REM HOW MANY FRAMES DID THE LOOP TAKE?
+    PRINT TIME-ZT;
+
+    GOTO MAINLOOP
+
+    END:REM ===========================
+
+
+    REM -------------------------------
+    REM
+    REM SET THE COLLISION MASK OF A SPRITE
+    REM
+    REM IN I - SPRITE INDEX (0-127)
+    REM IN M - MASK (%0000 - %1111)
+    REM 
+SPRITEMASK:
+    ZA = $FC06 + (8*I)                  :REM BANK 1 ATTR BYTE (A)DDRESS
+    ZR = VPEEK(1, ZA)                   :REM ATTRIBUTES (R)EAD
+    ZW = (ZR AND %1111) OR (M*16)       :REM SUBSTITUTE M FOR HIGH NIBBLE OF ZR
+    VPOKE 1, ZA, ZW
+    REM ZC = VPEEK(1, ZA)               :REM (C)ONFIRM THE ATTRIBUTES
+    REM PRINT "SPRITE";I;"COLLISION MASK ";BIN$(ZR);" => ";BIN$(ZC)
+    RETURN
+
+    REM -------------------------------
+    REM
+    REM SOMEONE SCORED A POINT
+    REM
+    REM IN BX - X-POSITION OF BALL
+    REM
+SCORE:
+    IF BX > 0 THEN NOTRIGHT
+        RS = RS + 1
+        NOTRIGHT:
+
+    IF BX < 632 THEN NOTLEFT
+        LS = LS + 1
+        NOTLEFT:
+
+    REM FALL THROUGH TO RE-SERVE
+
+    REM --------------------------------
+    REM
+    REM "SERVE" THE BALL FROM THE MIDDLE
+    REM OF THE SCREEN WITH A RANDOM
+    REM VELOCITY
+    REM
+SERVE:
+    NC = 0                              :REM RESET COLLISION DEBOUNCE
+    LOCATE 1,20: PRINT LS               :REM DRAW THE SCOREBOARD
+    LOCATE 1,37: PRINT "SCORE"
+    LOCATE 1,60: PRINT RS
+
+    BX = 316                            :REM RESET BALL POSITION
+    BY = 236
+    BH = -1                             :REM RANDOMIZE BALL VELOCITY
+    IF RND(0) > 0.5 THEN BH = 1
+    BV = -1
+    IF RND(0) > 0.5 THEN BV = 1
+
+    RETURN
