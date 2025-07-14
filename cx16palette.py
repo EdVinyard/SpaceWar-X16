@@ -2,12 +2,15 @@
 As a program, prints the default Commander X16 pallete in a format suitable for
 the "Colors" > "Import Colors" feature of the https://www.pixilart.com/ sprite
 editor.
-
-As a library, import 
 '''
+import typing
 
-## from https://github.com/fvdhoef/vera-module/blob/rev4/doc/VERA%20Programmer's%20Reference.md#palette
-three_byte_color_strings = '''
+RGB: typing.TypeAlias = tuple[int, int, int]
+RGBA: typing.TypeAlias = tuple[int, int, int, int]
+
+# from
+# https://github.com/fvdhoef/vera-module/blob/rev4/doc/VERA%20Programmer's%20Reference.md#palette
+THREE_BYTE_COLOR_STRINGS = '''
 000,fff,800,afe,c4c,0c5,00a,ee7,d85,640,f77,333,777,af6,08f,bbb
 000,111,222,333,444,555,666,777,888,999,aaa,bbb,ccc,ddd,eee,fff
 211,433,644,866,a88,c99,fbb,211,422,633,844,a55,c66,f77,200,411
@@ -27,7 +30,13 @@ c6b,f7d,201,413,615,826,a28,c3a,f3c,201,403,604,806,a08,c09,f0b
 '''
 
 
-def flatten(arrays):
+def flatten(arrays: list[list[any]]) -> list[any]:
+    '''
+    Given an sequence of sequences, returns all the elements of the nested
+    sequences flattened into a single list.
+
+    For example, given `[[1,2], [3,4]]` returns `[1,2,3,4]`.
+    '''
     result = []
     for a in arrays:
         result.extend(a)
@@ -56,30 +65,33 @@ def color_12bit_to_argb(twelve_bit_triple: str) -> tuple[int, int, int, int]:
 
 
 ## Replace line breaks with ','.
-comma_separated_color_triples = ','.join( 
-    l 
-    for l 
-    in three_byte_color_strings.splitlines() 
-    if l != '' 
+COMMA_SEPARATED_COLOR_TRIPLES = ','.join(
+    l
+    for l
+    in THREE_BYTE_COLOR_STRINGS.splitlines()
+    if l != ''
     )
 
-comma_separated_color_triple_strs = comma_separated_color_triples.split(',')     
+
+comma_separated_color_triple_strs = COMMA_SEPARATED_COLOR_TRIPLES.split(',')
+
 
 ## Convert colors from 12-bit to 24-bit hexidecimal notation.
 palette = [
-    color_12bit_to_24bit(t) 
-    for t 
+    color_12bit_to_24bit(t)
+    for t
     in comma_separated_color_triple_strs
     ]
 
-rgba_palette: list[tuple[int, int, int]] = [ 
+
+rgba_palette: list[RGB] = [
     color_12bit_to_argb(color_triple_str)
     for color_triple_str
     in comma_separated_color_triple_strs
     ]
 
 
-def hexify(rgba: tuple[int, int, int, int]) -> str:
+def hexify(rgba: RGBA) -> str:
     '''
     Given a tuple of 8-bit integers representing alpha, red, green, and blue
     pixel values, return the (somewhat) human-friendly string of hexidecimal
@@ -88,12 +100,45 @@ def hexify(rgba: tuple[int, int, int, int]) -> str:
     Example: given (8, 9, 10, 11) returns "08090a0b"
     '''
     return ''.join(
-        f'{hex(i).replace('0x', ''):0>2}'
+        f'{hex(i).replace("0x", ""):0>2}'
         for i in rgba
         )
 
 
-def rgba_to_index(rgba: tuple[int, int, int, int]) -> int:
+def rgb_distance(l: RGBA, r: RGBA) -> int:
+    '''
+    compute the Euclidian color distance
+
+    see https://en.wikipedia.org/wiki/Color_difference#sRGB
+    '''
+    l_red, l_green, l_blue, _ = l
+    r_red, r_green, r_blue, _ = r
+    return (
+        (r_red   - l_red  )**2 +
+        (r_green - l_green)**2 +
+        (r_blue  - l_blue )**2
+    )
+
+
+def nearest(target: RGBA, n: int = 3) -> list[RGBA]:
+    '''
+    Returns the `n` pairs of indices and RGB values in the default Commander X16
+    palette nearest the supplied ARGB value.
+    '''
+    dist_and_index = list(
+        (rgb_distance(target, entry), i)
+        for i, entry
+        in enumerate(rgba_palette)
+        )
+    dist_and_index.sort()
+    return list(
+        (i, rgba_palette[i])
+        for d, i
+        in dist_and_index[:n]
+        )
+
+
+def rgba_to_index(rgba: RGBA) -> int:
     '''
     Given a tuple of 8-bit integers representing alpha, red, green, and blue
     pixel values, either return the corresponding index into the Commander X16's
@@ -101,10 +146,12 @@ def rgba_to_index(rgba: tuple[int, int, int, int]) -> int:
     '''
     try:
         return rgba_palette.index(rgba)
-    except ValueError:
+    except ValueError as exc:
         raise ValueError(
-            f'pixel ARGB value {hexify(rgba)} / {rgba} is not part of '
-            f'the default Commander X16 color palette')
+            f'pixel RGBA value {hexify(rgba)} / {rgba} is not part of '
+            f'the default Commander X16 color palette; '
+            f'close matches: {nearest(rgba)} '
+            ) from exc
 
 
 def print_pixelart_palette():
@@ -112,7 +159,7 @@ def print_pixelart_palette():
     prints the default Commander X16 pallete in a format suitable for the
     "Colors" > "Import Colors" feature of the https://www.pixilart.com/ sprite
     editor.
-    '''    
+    '''
     print(','.join(palette))
 
 
