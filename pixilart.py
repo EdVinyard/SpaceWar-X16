@@ -66,7 +66,7 @@ def export_layer(
 
     frame_name = frame_name.replace(' ', '')
     layer_name = layer_name.replace(' ', '')
-    x16_bin_file_name = f'{file_name_no_ext}_{frame_name}{layer_name}.bin'
+    x16_bin_file_name = f'{file_name_no_ext}-{frame_name}-{layer_name}.bin'
     print(f'\twriting {len(x16_bin_file_content)} bytes to {x16_bin_file_name}... ', end='')
     with open(x16_bin_file_name, 'wb') as f:
         f.write(bytes(x16_bin_file_content))
