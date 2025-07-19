@@ -2,7 +2,7 @@
     COLOR 1,6: REM WHITE ON DARKISH BLUE
     CLS
 
-    DG = 1      :REM DEBUG ON=1 OFF=0
+    DG = 0      :REM DEBUG ON=1 OFF=0
     HA = 1      :REM SPRITE HI ADDRESS (0 OR 1)
     SZ = 16     :REM SPRITE WIDTH AND HEIGHT
     DIM HL(15)  :REM HULL IMAGE ADDRESS LOW 16 BITS
@@ -13,31 +13,27 @@
     DOS "CD:SPRITE"
     FOR I = 0 TO 31
         L = $4000 + (256 * I)               :REM SPRITE LO ADDRESS
-        X = (SZ*I) AND 255: REM MOD 256
-        Y = SZ * INT(SZ*I / 256)
         BVLOAD F$(I), 8, HA, L
-        SPRMEM I, HA, L, 1
-        REM    IDX PRI PAL FLP WID HEI COLOR
-        SPRITE   I,  3,  0,  0,  1,  1
-        MOVSPR I, X, Y
         IF LEFT$(F$(I), 4) = "HULL" THEN HL(I   ) = L
         IF LEFT$(F$(I), 4) = "SAIL" THEN SL(I-16) = L
-        PRINT I; HEX$(L); X; Y; F$(I)
+        IF DG=1 THEN GOSUB SPRITEDEBUG
         NEXT I
 
     REM HULL
-    SPRMEM  33, HA, HL(0), 1
+    HS = 33
+    SPRMEM  HS, HA, HL(0), 1
     REM    IDX PRI PAL FLP WID HEI COLOR
-    SPRITE  33,  3,  0,  0,  1,  1
-    MOVSPR  33, 300, 120
+    SPRITE  HS,  3,  0,  0,  1,  1
+    MOVSPR  HS, 300, 120
 
     REM SAIL
-    SPRMEM  32, HA, SL(0), 1                :REM LOWER SPRITE INDEX DRAWS OVER
+    SS = 32                                 :REM LOWER SPRITE INDEX DRAWS OVER
+    SPRMEM  SS, HA, SL(0), 1
     REM    IDX PRI PAL FLP WID HEI COLOR
-    SPRITE  32,  3,  0,  0,  1,  1
-    MOVSPR  32, 300, 120
+    SPRITE  SS,  3,  0,  0,  1,  1
+    MOVSPR  SS, 300, 120
 
-    PRINT "D,F TURN HULL; J,K TURN SAIL; Q QUITS"
+    PRINT "D,F TURN HULL; J,K TURN SAIL; Q QUIT"
     H = 0                                   :REM HULL ORIENTATION 0-15
     S = 0                                   :REM SAIL ORIENTATION 0-15
 WAITQUIT:
@@ -52,12 +48,12 @@ WAITQUIT:
     IF K$="K" THEN S = (S + 1) AND 15
 
     IF S = S0 GOTO SAMESAIL
-        SPRMEM 32, HA, SL(S), 1
+        SPRMEM SS, HA, SL(S), 1
         PRINT "SAIL";S,HEX$(SL(S))
         SAMESAIL:
 
     IF H = H0 GOTO SAMEHULL
-        SPRMEM 33, HA, HL(H), 1
+        SPRMEM HS, HA, HL(H), 1
         PRINT "HULL";H,HEX$(HL(H))
         SAMEHULL:
 
@@ -97,4 +93,14 @@ FILENAMES:
     F$(29) = "SAIL13WNW.BIN"
     F$(30) = "SAIL14NW.BIN"
     F$(31) = "SAIL15NNW.BIN"
+    RETURN
+
+SPRITEDEBUG:
+    SPRMEM I, HA, L, 1
+    REM    IDX PRI PAL FLP WID HEI COLOR
+    SPRITE   I,  3,  0,  0,  1,  1
+    X = (SZ*I) AND 255: REM MOD 256
+    Y = SZ * INT(SZ*I / 256)
+    MOVSPR I, X, Y
+    PRINT I; HEX$(L); X; Y; F$(I)
     RETURN
