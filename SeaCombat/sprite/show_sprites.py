@@ -20,6 +20,7 @@ import sys
 import textwrap
 import tempfile
 
+PATH = __file__
 USAGE = __doc__
 DEBUG = False
 BASIC_TEMPLATE = textwrap.dedent('''
@@ -34,8 +35,8 @@ BASIC_TEMPLATE = textwrap.dedent('''
     1180 L = $4000 + (256 * I): REM SPRITE LO ADDRESS
     1190 X = (SZ*I) AND 255: REM MOD 256
     1200 Y = SZ * INT(SZ*I / 256)
-    1210 REM PRINT S; HEX$(L); X; Y; F$(I+1)
-    1220 BVLOAD F$(I+1), 8, H, L
+    1210 PRINT S; HEX$(L); X; Y; F$(I)
+    1220 BVLOAD F$(I), 8, H, L
     1230 SPRMEM S, H, L, 1
     1240 REM    IDX PRI PAL FLP WID HEI COLOR
     1250 SPRITE   S,  3,  0,  0,  1,  1
@@ -64,11 +65,11 @@ def basic_filename_array(image_filenames):
     '''
     size = len(image_filenames)
     lines = []
-    lines.append(f'100 DIM F$({size})')
+    lines.append(f'100 DIM F$({size-1})')
 
     for i, filename in enumerate(image_filenames):
         line_number = 110 + 10*i
-        lines.append(f'{line_number} F$({i+1}) = "{filename.upper()}"')
+        lines.append(f'{line_number} F$({i}) = "{filename.upper()}"')
 
     return '\n'.join(lines)
 
@@ -94,7 +95,7 @@ def show_sprites(image_filenames):
         debug_print(basic_program)
         basic_file.write(basic_program)
         basic_file.close()
-        os.system(f'x16emu -scale 2 -bas {basic_file.name}')
+        os.system(f'x16emu -scale 2 -echo iso -bas {basic_file.name}')
 
 
 def main(args):

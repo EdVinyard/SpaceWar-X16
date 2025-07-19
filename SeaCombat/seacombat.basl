@@ -1,0 +1,91 @@
+    SCREEN $80
+    COLOR 1,6: REM WHITE ON DARKISH BLUE
+    CLS
+
+    H = 1: REM SPRITE HI ADDRESS (0 OR 1)
+    SZ = 16: REM SPRITE WIDTH AND HEIGHT
+    DIM F$(31): REM FILE NAMES
+    DIM HL(15): REM HULL IMAGE ADDRESS LOW 16 BITS
+    DIM SL(15): REM SAIL IMAGE ADDRESS LOW 16 BITS
+
+    F$(0) = "HULL00N.BIN"
+    F$(1) = "HULL01NNE.BIN"
+    F$(2) = "HULL02NE.BIN"
+    F$(3) = "HULL03ENE.BIN"
+    F$(4) = "HULL04E.BIN"
+    F$(5) = "HULL05ESE.BIN"
+    F$(6) = "HULL06SE.BIN"
+    F$(7) = "HULL07SSE.BIN"
+    F$(8) = "HULL08S.BIN"
+    F$(9) = "HULL09SSW.BIN"
+    F$(10) = "HULL10SW.BIN"
+    F$(11) = "HULL11WSW.BIN"
+    F$(12) = "HULL12W.BIN"
+    F$(13) = "HULL13WNW.BIN"
+    F$(14) = "HULL14NW.BIN"
+    F$(15) = "HULL15NNW.BIN"
+    F$(16) = "SAIL00N.BIN"
+    F$(17) = "SAIL01NNE.BIN"
+    F$(18) = "SAIL02NE.BIN"
+    F$(19) = "SAIL03ENE.BIN"
+    F$(20) = "SAIL04E.BIN"
+    F$(21) = "SAIL05ESE.BIN"
+    F$(22) = "SAIL06SE.BIN"
+    F$(23) = "SAIL07SSE.BIN"
+    F$(24) = "SAIL08S.BIN"
+    F$(25) = "SAIL09SSW.BIN"
+    F$(26) = "SAIL10SW.BIN"
+    F$(27) = "SAIL11WSW.BIN"
+    F$(28) = "SAIL12W.BIN"
+    F$(29) = "SAIL13WNW.BIN"
+    F$(30) = "SAIL14NW.BIN"
+    F$(31) = "SAIL15NNW.BIN"
+
+    DOS "CD:SPRITE"
+    FOR I = 0 TO 31
+        L = $4000 + (256 * I): REM SPRITE LO ADDRESS
+        X = (SZ*I) AND 255: REM MOD 256
+        Y = SZ * INT(SZ*I / 256)
+        BVLOAD F$(I), 8, H, L
+        SPRMEM I, H, L, 1
+        REM    IDX PRI PAL FLP WID HEI COLOR
+        SPRITE   I,  3,  0,  0,  1,  1
+        MOVSPR I, X, Y
+        IF LEFT$(F$(I), 4) = "HULL" THEN HL(I   ) = L
+        IF LEFT$(F$(I), 4) = "SAIL" THEN SL(I-16) = L
+        PRINT I; HEX$(L); X; Y; F$(I)
+        NEXT I
+
+    REM HULL
+    SPRMEM  33, H, HL(0), 1
+    REM    IDX PRI PAL FLP WID HEI COLOR
+    SPRITE  33,  3,  0,  0,  1,  1
+    MOVSPR  33, 300, 120
+
+    REM SAIL - LOWER SPRITE INDEX DRAWS OVER HULL
+    SPRMEM  32, H, SL(0), 1
+    REM    IDX PRI PAL FLP WID HEI COLOR
+    SPRITE  32,  3,  0,  0,  1,  1
+    MOVSPR  32, 300, 120
+
+    LOCATE 30,20
+    PRINT "ANY KEY TO CONTINUE"
+
+    H = 0
+    S = 0
+WAITQUIT:
+    GET K$: IF K$="" GOTO WAITQUIT
+    H0 = H
+    S0 = S
+
+    IF K$="D" THEN H = (H - 1) AND 15
+    IF K$="F" THEN H = (H + 1) AND 15
+
+    IF K$="J" THEN S = (S - 1) AND 15
+    IF K$="K" THEN S = (S + 1) AND 15
+
+    IF S <> S0 THEN SPRMEM 32, H, SL(S), 1
+    IF H <> H0 THEN SPRMEM 33, H, HL(H), 1
+
+    IF K$<>"Q" GOTO WAITQUIT:
+    END
