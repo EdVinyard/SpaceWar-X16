@@ -21,20 +21,21 @@ import textwrap
 import tempfile
 
 USAGE = __doc__
-DEBUG = True
+DEBUG = False
 BASIC_TEMPLATE = textwrap.dedent('''
     10 SCREEN $80
     20 COLOR 1,6: REM WHITE ON DARKISH BLUE
     30 CLS
     40 H = 1: REM SPRITE HI ADDRESS (0 OR 1)
+    50 SZ = 16: REM SPRITE WIDTH AND HEIGHT
     {filename_array}
-    1160 FOR I = 1 TO {file_count}
+    1160 FOR I = 0 TO ({file_count}-1)
     1170 S = I: REM SPRITE INDEX
     1180 L = $4000 + (256 * I): REM SPRITE LO ADDRESS
-    1190 X = (16*I) AND 255: REM MOD 256
-    1200 Y = INT(16*I / 256)
-    1210 REM PRINT S; HEX$(L); X; Y; F$(I)
-    1220 BVLOAD F$(I), 8, H, L
+    1190 X = (SZ*I) AND 255: REM MOD 256
+    1200 Y = SZ * INT(SZ*I / 256)
+    1210 REM PRINT S; HEX$(L); X; Y; F$(I+1)
+    1220 BVLOAD F$(I+1), 8, H, L
     1230 SPRMEM S, H, L, 1
     1240 REM    IDX PRI PAL FLP WID HEI COLOR
     1250 SPRITE   S,  3,  0,  0,  1,  1
@@ -83,17 +84,17 @@ def ascii_basic_program(image_filenames):
         file_count=len(image_filenames))
 
 
-def show_sprites(filenames):
+def show_sprites(image_filenames):
     '''
     Using the Commander X16 emulator, display all of the specified binary image
     files as sprites tiled on the screen.
     '''
     with tempfile.NamedTemporaryFile('w', delete=False) as basic_file:
-        basic_program = ascii_basic_program(filenames)
+        basic_program = ascii_basic_program(image_filenames)
         debug_print(basic_program)
         basic_file.write(basic_program)
         basic_file.close()
-        os.system(f'x16emu -scale 2 -bas {basic_file.name} -echo iso')
+        os.system(f'x16emu -scale 2 -bas {basic_file.name}')
 
 
 def main(args):

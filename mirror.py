@@ -175,13 +175,10 @@ def write_image(path: str, image: X16Image) -> None:
 
 def main(args):
     '''command line interface; see `USAGE`'''
-    try:
-        original_image_path = args[0]
-        mirror_direction = args[1]
-        mirrored_image_path = args[2]
-    except IndexError:
+    if len(args) != 3:
         print_usage_and_exit()
 
+    mirror_direction, original_image_path, mirrored_image_path = args
     original_image = read_image(original_image_path)
     mirrored_image = mirror(original_image, mirror_direction)
     write_image(mirrored_image_path, mirrored_image)
