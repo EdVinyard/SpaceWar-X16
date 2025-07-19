@@ -99,8 +99,10 @@ SPRITEDEBUG:
     SPRMEM I, HA, L, 1
     REM    IDX PRI PAL FLP WID HEI COLOR
     SPRITE   I,  3,  0,  0,  1,  1
+
     X = (SZ*I) AND 255: REM MOD 256
     Y = SZ * INT(SZ*I / 256)
     MOVSPR I, X, Y
+
     PRINT I; HEX$(L); X; Y; F$(I)
     RETURN
