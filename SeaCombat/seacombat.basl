@@ -2,12 +2,69 @@
     COLOR 1,6: REM WHITE ON DARKISH BLUE
     CLS
 
-    H = 1: REM SPRITE HI ADDRESS (0 OR 1)
-    SZ = 16: REM SPRITE WIDTH AND HEIGHT
-    DIM F$(31): REM FILE NAMES
-    DIM HL(15): REM HULL IMAGE ADDRESS LOW 16 BITS
-    DIM SL(15): REM SAIL IMAGE ADDRESS LOW 16 BITS
+    DG = 1      :REM DEBUG ON=1 OFF=0
+    HA = 1      :REM SPRITE HI ADDRESS (0 OR 1)
+    SZ = 16     :REM SPRITE WIDTH AND HEIGHT
+    DIM HL(15)  :REM HULL IMAGE ADDRESS LOW 16 BITS
+    DIM SL(15)  :REM SAIL IMAGE ADDRESS LOW 16 BITS
+    DIM F$(31)  :REM IMAGE FILE NAMES
+    GOSUB FILENAMES
 
+    DOS "CD:SPRITE"
+    FOR I = 0 TO 31
+        L = $4000 + (256 * I)               :REM SPRITE LO ADDRESS
+        X = (SZ*I) AND 255: REM MOD 256
+        Y = SZ * INT(SZ*I / 256)
+        BVLOAD F$(I), 8, HA, L
+        SPRMEM I, HA, L, 1
+        REM    IDX PRI PAL FLP WID HEI COLOR
+        SPRITE   I,  3,  0,  0,  1,  1
+        MOVSPR I, X, Y
+        IF LEFT$(F$(I), 4) = "HULL" THEN HL(I   ) = L
+        IF LEFT$(F$(I), 4) = "SAIL" THEN SL(I-16) = L
+        PRINT I; HEX$(L); X; Y; F$(I)
+        NEXT I
+
+    REM HULL
+    SPRMEM  33, HA, HL(0), 1
+    REM    IDX PRI PAL FLP WID HEI COLOR
+    SPRITE  33,  3,  0,  0,  1,  1
+    MOVSPR  33, 300, 120
+
+    REM SAIL
+    SPRMEM  32, HA, SL(0), 1                :REM LOWER SPRITE INDEX DRAWS OVER
+    REM    IDX PRI PAL FLP WID HEI COLOR
+    SPRITE  32,  3,  0,  0,  1,  1
+    MOVSPR  32, 300, 120
+
+    PRINT "D,F TURN HULL; J,K TURN SAIL; Q QUITS"
+    H = 0                                   :REM HULL ORIENTATION 0-15
+    S = 0                                   :REM SAIL ORIENTATION 0-15
+WAITQUIT:
+    GET K$: IF K$="" GOTO WAITQUIT
+    H0 = H                                  :REM STARTING HULL ORIENTATION
+    S0 = S                                  :REM STARTING SAIL ORIENTATION
+
+    IF K$="D" THEN H = (H - 1) AND 15
+    IF K$="F" THEN H = (H + 1) AND 15
+
+    IF K$="J" THEN S = (S - 1) AND 15
+    IF K$="K" THEN S = (S + 1) AND 15
+
+    IF S = S0 GOTO SAMESAIL
+        SPRMEM 32, HA, SL(S), 1
+        PRINT "SAIL";S,HEX$(SL(S))
+        SAMESAIL:
+
+    IF H = H0 GOTO SAMEHULL
+        SPRMEM 33, HA, HL(H), 1
+        PRINT "HULL";H,HEX$(HL(H))
+        SAMEHULL:
+
+    IF K$<>"Q" GOTO WAITQUIT:
+    END
+
+FILENAMES:
     F$(0) = "HULL00N.BIN"
     F$(1) = "HULL01NNE.BIN"
     F$(2) = "HULL02NE.BIN"
@@ -40,52 +97,4 @@
     F$(29) = "SAIL13WNW.BIN"
     F$(30) = "SAIL14NW.BIN"
     F$(31) = "SAIL15NNW.BIN"
-
-    DOS "CD:SPRITE"
-    FOR I = 0 TO 31
-        L = $4000 + (256 * I): REM SPRITE LO ADDRESS
-        X = (SZ*I) AND 255: REM MOD 256
-        Y = SZ * INT(SZ*I / 256)
-        BVLOAD F$(I), 8, H, L
-        SPRMEM I, H, L, 1
-        REM    IDX PRI PAL FLP WID HEI COLOR
-        SPRITE   I,  3,  0,  0,  1,  1
-        MOVSPR I, X, Y
-        IF LEFT$(F$(I), 4) = "HULL" THEN HL(I   ) = L
-        IF LEFT$(F$(I), 4) = "SAIL" THEN SL(I-16) = L
-        PRINT I; HEX$(L); X; Y; F$(I)
-        NEXT I
-
-    REM HULL
-    SPRMEM  33, H, HL(0), 1
-    REM    IDX PRI PAL FLP WID HEI COLOR
-    SPRITE  33,  3,  0,  0,  1,  1
-    MOVSPR  33, 300, 120
-
-    REM SAIL - LOWER SPRITE INDEX DRAWS OVER HULL
-    SPRMEM  32, H, SL(0), 1
-    REM    IDX PRI PAL FLP WID HEI COLOR
-    SPRITE  32,  3,  0,  0,  1,  1
-    MOVSPR  32, 300, 120
-
-    LOCATE 30,20
-    PRINT "ANY KEY TO CONTINUE"
-
-    H = 0
-    S = 0
-WAITQUIT:
-    GET K$: IF K$="" GOTO WAITQUIT
-    H0 = H
-    S0 = S
-
-    IF K$="D" THEN H = (H - 1) AND 15
-    IF K$="F" THEN H = (H + 1) AND 15
-
-    IF K$="J" THEN S = (S - 1) AND 15
-    IF K$="K" THEN S = (S + 1) AND 15
-
-    IF S <> S0 THEN SPRMEM 32, H, SL(S), 1
-    IF H <> H0 THEN SPRMEM 33, H, HL(H), 1
-
-    IF K$<>"Q" GOTO WAITQUIT:
-    END
+    RETURN
