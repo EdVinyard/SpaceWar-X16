@@ -41,7 +41,7 @@ MirrorFunction: TypeAlias = Callable[[X16Image], X16Image]
 def print_usage_and_exit():
     '''Print the usage message and exit with an error status.'''
     print(USAGE)
-    exit(1)
+    sys.exit(1)
 
 
 def square_dimension(image: X16Image) -> int:
@@ -174,7 +174,7 @@ def write_image(path: str, image: X16Image) -> None:
 
 
 def main(args):
-    '''command line interface'''
+    '''command line interface; see `USAGE`'''
     try:
         original_image_path = args[0]
         mirror_direction = args[1]
