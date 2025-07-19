@@ -8,11 +8,11 @@ when it starts up.
 
 usage:
 
-  showsprt.bash <sprite-paths...>
+  python3 show_sprites.py <sprite-paths...>
 
 where
 
-  sprite-path: path of a headerless, palette-indexed 16x16 sprite file
+  sprite-path       path of a headerless, palette-indexed 16x16 sprite file
 
 '''
 import os
